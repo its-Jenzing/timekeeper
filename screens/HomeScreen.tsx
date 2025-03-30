@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Button, Card, Text, TextInput, FAB, Divider, useTheme } from 'react-native-paper';
+import { Button, Card, Text, TextInput, FAB, Divider, useTheme, Menu, List } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
@@ -12,6 +12,13 @@ export default function HomeScreen({ navigation }) {
   const [manualMinutes, setManualMinutes] = useState('');
   const [description, setDescription] = useState('');
   const [timeEntries, setTimeEntries] = useState([]);
+  const [customers, setCustomers] = useState([
+    { id: '1', name: 'Acme Inc.' },
+    { id: '2', name: 'TechCorp' },
+    { id: '3', name: 'GlobalSoft' }
+  ]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerMenuVisible, setCustomerMenuVisible] = useState(false);
 
   useEffect(() => {
     let interval;
@@ -37,7 +44,8 @@ export default function HomeScreen({ navigation }) {
       duration: elapsedTime,
       description: description || 'No description',
       timestamp: new Date().toISOString(),
-      type: 'automatic'
+      type: 'automatic',
+      customer: selectedCustomer ? selectedCustomer.name : 'Unassigned'
     };
     setTimeEntries([entry, ...timeEntries]);
     setElapsedTime(0);
@@ -55,7 +63,8 @@ export default function HomeScreen({ navigation }) {
         duration: totalMilliseconds,
         description: description || 'No description',
         timestamp: new Date().toISOString(),
-        type: 'manual'
+        type: 'manual',
+        customer: selectedCustomer ? selectedCustomer.name : 'Unassigned'
       };
       setTimeEntries([entry, ...timeEntries]);
       setManualHours('');
@@ -85,13 +94,49 @@ export default function HomeScreen({ navigation }) {
                   {formatTime(elapsedTime)}
                 </Text>
               </View>
-              <TextInput
-                label="Description"
-                value={description}
-                onChangeText={setDescription}
-                style={styles.input}
-                mode="outlined"
-              />
+              <View style={styles.inputRow}>
+                <TextInput
+                  label="Description"
+                  value={description}
+                  onChangeText={setDescription}
+                  style={[styles.input, styles.descriptionInput]}
+                  mode="outlined"
+                />
+                <View style={styles.customerSelector}>
+                  <Button 
+                    mode="outlined" 
+                    onPress={() => setCustomerMenuVisible(true)}
+                    style={styles.customerButton}
+                  >
+                    {selectedCustomer ? selectedCustomer.name : "Select Customer"}
+                  </Button>
+                  <Menu
+                    visible={customerMenuVisible}
+                    onDismiss={() => setCustomerMenuVisible(false)}
+                    anchor={<View />}
+                    style={styles.customerMenu}
+                  >
+                    {customers.map((customer) => (
+                      <Menu.Item
+                        key={customer.id}
+                        onPress={() => {
+                          setSelectedCustomer(customer);
+                          setCustomerMenuVisible(false);
+                        }}
+                        title={customer.name}
+                      />
+                    ))}
+                    <Divider />
+                    <Menu.Item
+                      onPress={() => {
+                        setSelectedCustomer(null);
+                        setCustomerMenuVisible(false);
+                      }}
+                      title="Clear Selection"
+                    />
+                  </Menu>
+                </View>
+              </View>
               <View style={styles.buttonContainer}>
                 {!isRunning ? (
                   <Button 
@@ -148,6 +193,15 @@ export default function HomeScreen({ navigation }) {
                 style={styles.input}
                 mode="outlined"
               />
+              <View style={styles.customerSelector}>
+                <Button 
+                  mode="outlined" 
+                  onPress={() => setCustomerMenuVisible(true)}
+                  style={styles.customerButton}
+                >
+                  {selectedCustomer ? selectedCustomer.name : "Select Customer"}
+                </Button>
+              </View>
               <Button 
                 mode="contained" 
                 onPress={addManualEntry} 
@@ -167,13 +221,22 @@ export default function HomeScreen({ navigation }) {
             <Card.Content>
               {timeEntries.length > 0 ? (
                 timeEntries.map((entry, index) => (
-                  <View key={entry.id} style={styles.entryContainer}>
+                  <View 
+                    key={entry.id} 
+                    style={[
+                      styles.entryContainer, 
+                      entry.customer && entry.customer !== 'Unassigned' ? styles.entryContainerWithCustomer : null
+                    ]}
+                  >
                     <Text variant="titleMedium" style={styles.entryTitle}>{entry.description}</Text>
                     <View style={styles.entryDetails}>
                       <Text style={styles.entryInfo}>Duration: {formatTime(entry.duration)}</Text>
                       <Text style={styles.entryInfo}>Date: {new Date(entry.timestamp).toLocaleDateString()}</Text>
                       <Text style={styles.entryInfo}>
                         Type: {entry.type === 'manual' ? 'Manual Entry' : 'Timer'}
+                      </Text>
+                      <Text style={styles.entryInfo}>
+                        Customer: {entry.customer || 'Unassigned'}
                       </Text>
                     </View>
                     {index < timeEntries.length - 1 && <Divider style={styles.divider} />}
@@ -249,6 +312,23 @@ const styles = StyleSheet.create({
   timeInput: {
     flex: 0.48,
   },
+  inputRow: {
+    flexDirection: 'column',
+    marginBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+  },
+  customerSelector: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  customerButton: {
+    borderRadius: 4,
+  },
+  customerMenu: {
+    marginTop: 40,
+  },
   buttonContainer: {
     marginTop: 8,
   },
@@ -269,6 +349,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#2196F3',
+  },
+  entryContainerWithCustomer: {
+    borderLeftColor: '#4CAF50',
   },
   entryTitle: {
     fontWeight: 'bold',
