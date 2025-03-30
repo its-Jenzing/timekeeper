@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Button, Card, Text, TextInput, FAB, Divider, useTheme, Menu, List } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, FlatList, TouchableOpacity } from 'react-native';
+import { Button, Card, Text, TextInput, FAB, Divider, useTheme, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
@@ -14,7 +14,9 @@ export default function HomeScreen({ navigation }) {
   const [timeEntries, setTimeEntries] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [customerMenuVisible, setCustomerMenuVisible] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
 
   // Load customers from CustomerScreen
   useEffect(() => {
@@ -39,6 +41,18 @@ export default function HomeScreen({ navigation }) {
     
     loadCustomers();
   }, []);
+
+  // Filter customers based on search query
+  useEffect(() => {
+    if (customerQuery) {
+      const filtered = customers.filter(customer => 
+        customer.name.toLowerCase().includes(customerQuery.toLowerCase())
+      );
+      setFilteredCustomers(filtered);
+    } else {
+      setFilteredCustomers([]);
+    }
+  }, [customerQuery, customers]);
 
   useEffect(() => {
     let interval;
@@ -123,47 +137,52 @@ export default function HomeScreen({ navigation }) {
                   mode="outlined"
                 />
                 <View style={styles.customerSelector}>
-                  <Button 
-                    mode="outlined" 
-                    onPress={() => setCustomerMenuVisible(true)}
-                    style={styles.customerButton}
-                  >
-                    {selectedCustomer ? selectedCustomer.name : "Select Customer"}
-                  </Button>
-                  <Menu
-                    visible={customerMenuVisible}
-                    onDismiss={() => setCustomerMenuVisible(false)}
-                    anchor={<View />}
-                    style={styles.customerMenu}
-                  >
-                    {customers.length > 0 ? (
-                      <>
-                        {customers.map((customer) => (
-                          <Menu.Item
-                            key={customer.id}
-                            onPress={() => {
-                              setSelectedCustomer(customer);
-                              setCustomerMenuVisible(false);
-                            }}
-                            title={customer.name}
-                          />
-                        ))}
-                        <Divider />
-                        <Menu.Item
+                  <TextInput
+                    label="Customer"
+                    value={selectedCustomer ? selectedCustomer.name : customerQuery}
+                    onChangeText={(text) => {
+                      setCustomerQuery(text);
+                      setSelectedCustomer(null);
+                      setShowCustomerSuggestions(true);
+                    }}
+                    style={styles.input}
+                    mode="outlined"
+                    placeholder="Type to search customers"
+                    right={
+                      selectedCustomer ? (
+                        <TextInput.Icon 
+                          icon="close" 
                           onPress={() => {
                             setSelectedCustomer(null);
-                            setCustomerMenuVisible(false);
-                          }}
-                          title="Clear Selection"
+                            setCustomerQuery('');
+                          }} 
                         />
-                      </>
-                    ) : (
-                      <Menu.Item
-                        title="No customers available"
-                        disabled={true}
+                      ) : null
+                    }
+                    left={<TextInput.Icon icon="account-multiple" />}
+                  />
+                  
+                  {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                    <Surface style={styles.suggestionsList} elevation={4}>
+                      <FlatList
+                        data={filteredCustomers}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              setSelectedCustomer(item);
+                              setCustomerQuery('');
+                              setShowCustomerSuggestions(false);
+                            }}
+                          >
+                            <Text style={styles.suggestionText}>{item.name}</Text>
+                          </TouchableOpacity>
+                        )}
+                        ItemSeparatorComponent={() => <Divider />}
                       />
-                    )}
-                  </Menu>
+                    </Surface>
+                  )}
                 </View>
               </View>
               <View style={styles.buttonContainer}>
@@ -223,13 +242,52 @@ export default function HomeScreen({ navigation }) {
                 mode="outlined"
               />
               <View style={styles.customerSelector}>
-                <Button 
-                  mode="outlined" 
-                  onPress={() => setCustomerMenuVisible(true)}
-                  style={styles.customerButton}
-                >
-                  {selectedCustomer ? selectedCustomer.name : "Select Customer"}
-                </Button>
+                <TextInput
+                  label="Customer"
+                  value={selectedCustomer ? selectedCustomer.name : customerQuery}
+                  onChangeText={(text) => {
+                    setCustomerQuery(text);
+                    setSelectedCustomer(null);
+                    setShowCustomerSuggestions(true);
+                  }}
+                  style={styles.input}
+                  mode="outlined"
+                  placeholder="Type to search customers"
+                  right={
+                    selectedCustomer ? (
+                      <TextInput.Icon 
+                        icon="close" 
+                        onPress={() => {
+                          setSelectedCustomer(null);
+                          setCustomerQuery('');
+                        }} 
+                      />
+                    ) : null
+                  }
+                  left={<TextInput.Icon icon="account-multiple" />}
+                />
+                
+                {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                  <Surface style={styles.suggestionsList} elevation={4}>
+                    <FlatList
+                      data={filteredCustomers}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={styles.suggestionItem}
+                          onPress={() => {
+                            setSelectedCustomer(item);
+                            setCustomerQuery('');
+                            setShowCustomerSuggestions(false);
+                          }}
+                        >
+                          <Text style={styles.suggestionText}>{item.name}</Text>
+                        </TouchableOpacity>
+                      )}
+                      ItemSeparatorComponent={() => <Divider />}
+                    />
+                  </Surface>
+                )}
               </View>
               <Button 
                 mode="contained" 
@@ -351,12 +409,24 @@ const styles = StyleSheet.create({
   customerSelector: {
     marginTop: 8,
     marginBottom: 8,
+    position: 'relative',
+    zIndex: 1,
   },
-  customerButton: {
+  suggestionsList: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: 200,
+    backgroundColor: 'white',
     borderRadius: 4,
+    zIndex: 2,
   },
-  customerMenu: {
-    marginTop: 40,
+  suggestionItem: {
+    padding: 12,
+  },
+  suggestionText: {
+    fontSize: 16,
   },
   buttonContainer: {
     marginTop: 8,
