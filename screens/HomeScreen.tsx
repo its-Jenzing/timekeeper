@@ -12,13 +12,33 @@ export default function HomeScreen({ navigation }) {
   const [manualMinutes, setManualMinutes] = useState('');
   const [description, setDescription] = useState('');
   const [timeEntries, setTimeEntries] = useState([]);
-  const [customers, setCustomers] = useState([
-    { id: '1', name: 'Acme Inc.' },
-    { id: '2', name: 'TechCorp' },
-    { id: '3', name: 'GlobalSoft' }
-  ]);
+  const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerMenuVisible, setCustomerMenuVisible] = useState(false);
+
+  // Load customers from CustomerScreen
+  useEffect(() => {
+    // In a real app, this would come from a database or state management
+    // For now, we'll simulate loading customers
+    const loadCustomers = async () => {
+      try {
+        // This is where you would fetch from AsyncStorage or a database
+        // For this example, we'll use some sample data
+        const savedCustomers = [
+          { id: '1', name: 'Acme Inc.' },
+          { id: '2', name: 'TechCorp' },
+          { id: '3', name: 'GlobalSoft' },
+          { id: '4', name: 'Local Business' },
+          { id: '5', name: 'Startup Co.' }
+        ];
+        setCustomers(savedCustomers);
+      } catch (error) {
+        console.error('Failed to load customers:', error);
+      }
+    };
+    
+    loadCustomers();
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -116,24 +136,33 @@ export default function HomeScreen({ navigation }) {
                     anchor={<View />}
                     style={styles.customerMenu}
                   >
-                    {customers.map((customer) => (
+                    {customers.length > 0 ? (
+                      <>
+                        {customers.map((customer) => (
+                          <Menu.Item
+                            key={customer.id}
+                            onPress={() => {
+                              setSelectedCustomer(customer);
+                              setCustomerMenuVisible(false);
+                            }}
+                            title={customer.name}
+                          />
+                        ))}
+                        <Divider />
+                        <Menu.Item
+                          onPress={() => {
+                            setSelectedCustomer(null);
+                            setCustomerMenuVisible(false);
+                          }}
+                          title="Clear Selection"
+                        />
+                      </>
+                    ) : (
                       <Menu.Item
-                        key={customer.id}
-                        onPress={() => {
-                          setSelectedCustomer(customer);
-                          setCustomerMenuVisible(false);
-                        }}
-                        title={customer.name}
+                        title="No customers available"
+                        disabled={true}
                       />
-                    ))}
-                    <Divider />
-                    <Menu.Item
-                      onPress={() => {
-                        setSelectedCustomer(null);
-                        setCustomerMenuVisible(false);
-                      }}
-                      title="Clear Selection"
-                    />
+                    )}
                   </Menu>
                 </View>
               </View>

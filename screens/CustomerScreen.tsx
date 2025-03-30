@@ -1,11 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CustomerScreen({ navigation }) {
   const theme = useTheme();
-  const [customers, setCustomers] = useState([]);
+  // Initialize with some sample customers
+  const [customers, setCustomers] = useState([
+    { 
+      id: '1', 
+      name: 'Acme Inc.',
+      email: 'contact@acme.com',
+      phone: '555-123-4567',
+      billingContact: 'John Doe',
+      billingEmail: 'billing@acme.com',
+      billingPhone: '555-123-4568'
+    },
+    { 
+      id: '2', 
+      name: 'TechCorp',
+      email: 'info@techcorp.com',
+      phone: '555-987-6543',
+      billingContact: 'Jane Smith',
+      billingEmail: 'accounting@techcorp.com',
+      billingPhone: '555-987-6544'
+    },
+    { 
+      id: '3', 
+      name: 'GlobalSoft',
+      email: 'hello@globalsoft.com',
+      phone: '555-456-7890',
+      billingContact: 'Mike Johnson',
+      billingEmail: 'finance@globalsoft.com',
+      billingPhone: '555-456-7891'
+    }
+  ]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -13,6 +42,21 @@ export default function CustomerScreen({ navigation }) {
   const [billingEmail, setBillingEmail] = useState('');
   const [billingPhone, setBillingPhone] = useState('');
   const [editingId, setEditingId] = useState(null);
+
+  // Save customers to storage whenever the list changes
+  useEffect(() => {
+    const saveCustomersToStorage = async () => {
+      try {
+        // In a real app, you would save to AsyncStorage or a database
+        console.log('Customers saved:', customers);
+        // This is where you would implement persistence
+      } catch (error) {
+        console.error('Failed to save customers:', error);
+      }
+    };
+    
+    saveCustomersToStorage();
+  }, [customers]);
 
   const saveCustomer = () => {
     if (!name.trim()) {
