@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Button, Card, Text, Checkbox, Divider, List, useTheme, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: Platform.OS === 'web' ? 16 : 80, // Extra padding for bottom tabs on mobile
   },
   card: {
     elevation: 4,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Button, Card, Text, TextInput, FAB, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -187,12 +187,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <FAB
-        style={styles.fab}
-        icon="account"
-        onPress={() => navigation.navigate('Customer')}
-        color="#fff"
-      />
+      {/* FAB removed since we now have tab navigation */}
     </SafeAreaView>
   );
 }
@@ -207,7 +202,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 16,
-    paddingBottom: 80, // Extra padding at bottom for FAB
+    paddingBottom: Platform.OS === 'web' ? 16 : 80, // Extra padding for bottom tabs on mobile
   },
   timerSection: {
     marginBottom: 20,

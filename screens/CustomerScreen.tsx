@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -238,12 +238,7 @@ export default function CustomerScreen({ navigation }) {
         </Card>
       </ScrollView>
 
-      <FAB
-        style={styles.fab}
-        icon="file-export"
-        onPress={() => navigation.navigate('Export')}
-        color="#fff"
-      />
+      {/* FAB removed since we now have tab navigation */}
     </SafeAreaView>
   );
 }
@@ -258,7 +253,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 16,
-    paddingBottom: 80, // Extra padding for FAB
+    paddingBottom: Platform.OS === 'web' ? 16 : 80, // Extra padding for bottom tabs on mobile
   },
   card: {
     marginBottom: 20,
