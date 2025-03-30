@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Card, Text, TextInput, FAB, List, Divider } from 'react-native-paper';
+import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CustomerScreen({ navigation }) {
+  const theme = useTheme();
   const [customers, setCustomers] = useState([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -96,15 +97,20 @@ export default function CustomerScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <Card style={styles.card}>
-          <Card.Title title={editingId ? "Edit Customer" : "Add New Customer"} />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+        <Card style={styles.card} mode="elevated">
+          <Card.Title 
+            title={editingId ? "Edit Customer" : "Add New Customer"} 
+            titleStyle={styles.cardTitle}
+          />
           <Card.Content>
             <TextInput
               label="Customer Name *"
               value={name}
               onChangeText={setName}
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="account" />}
             />
             <TextInput
               label="Email"
@@ -112,6 +118,8 @@ export default function CustomerScreen({ navigation }) {
               onChangeText={setEmail}
               keyboardType="email-address"
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="email" />}
             />
             <TextInput
               label="Phone"
@@ -119,15 +127,22 @@ export default function CustomerScreen({ navigation }) {
               onChangeText={setPhone}
               keyboardType="phone-pad"
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="phone" />}
             />
             
-            <Text variant="titleMedium" style={styles.sectionTitle}>Billing Information</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>Billing Information</Text>
+              <Divider style={styles.sectionDivider} />
+            </View>
             
             <TextInput
               label="Billing Contact Name"
               value={billingContact}
               onChangeText={setBillingContact}
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="account-tie" />}
             />
             <TextInput
               label="Billing Email"
@@ -135,6 +150,8 @@ export default function CustomerScreen({ navigation }) {
               onChangeText={setBillingEmail}
               keyboardType="email-address"
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="email-outline" />}
             />
             <TextInput
               label="Billing Phone"
@@ -142,68 +159,80 @@ export default function CustomerScreen({ navigation }) {
               onChangeText={setBillingPhone}
               keyboardType="phone-pad"
               style={styles.input}
+              mode="outlined"
+              left={<TextInput.Icon icon="phone-outline" />}
             />
             
-            <Button 
-              mode="contained" 
-              onPress={saveCustomer} 
-              style={styles.button}
-            >
-              {editingId ? "Update Customer" : "Add Customer"}
-            </Button>
-            
-            {editingId && (
+            <View style={styles.buttonGroup}>
               <Button 
-                mode="outlined" 
-                onPress={() => {
-                  setEditingId(null);
-                  setName('');
-                  setEmail('');
-                  setPhone('');
-                  setBillingContact('');
-                  setBillingEmail('');
-                  setBillingPhone('');
-                }} 
+                mode="contained" 
+                onPress={saveCustomer} 
                 style={styles.button}
+                icon={editingId ? "content-save" : "plus-circle"}
               >
-                Cancel Edit
+                {editingId ? "Update Customer" : "Add Customer"}
               </Button>
-            )}
+              
+              {editingId && (
+                <Button 
+                  mode="outlined" 
+                  onPress={() => {
+                    setEditingId(null);
+                    setName('');
+                    setEmail('');
+                    setPhone('');
+                    setBillingContact('');
+                    setBillingEmail('');
+                    setBillingPhone('');
+                  }} 
+                  style={styles.button}
+                  icon="cancel"
+                >
+                  Cancel Edit
+                </Button>
+              )}
+            </View>
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
-          <Card.Title title="Customer List" />
+        <Card style={styles.card} mode="elevated">
+          <Card.Title title="Customer List" titleStyle={styles.cardTitle} />
           <Card.Content>
             {customers.length > 0 ? (
-              customers.map((customer, index) => (
-                <View key={customer.id}>
-                  <List.Item
-                    title={customer.name}
-                    description={customer.email || 'No email provided'}
-                    left={props => <List.Icon {...props} icon="account" />}
-                    right={props => (
-                      <View style={styles.actionButtons}>
-                        <Button 
-                          icon="pencil" 
-                          mode="text" 
-                          onPress={() => editCustomer(customer)}
-                          style={styles.iconButton}
-                        />
-                        <Button 
-                          icon="delete" 
-                          mode="text" 
-                          onPress={() => deleteCustomer(customer.id)}
-                          style={styles.iconButton}
-                        />
-                      </View>
-                    )}
-                  />
-                  {index < customers.length - 1 && <Divider />}
-                </View>
-              ))
+              <View style={styles.customerList}>
+                {customers.map((customer, index) => (
+                  <View key={customer.id} style={styles.customerItem}>
+                    <List.Item
+                      title={customer.name}
+                      titleStyle={styles.customerName}
+                      description={customer.email || 'No email provided'}
+                      descriptionStyle={styles.customerEmail}
+                      left={props => <List.Icon {...props} icon="account" color={theme.colors.primary} />}
+                      right={props => (
+                        <View style={styles.actionButtons}>
+                          <Button 
+                            icon="pencil" 
+                            mode="contained-tonal" 
+                            onPress={() => editCustomer(customer)}
+                            style={styles.iconButton}
+                            compact
+                          />
+                          <Button 
+                            icon="delete" 
+                            mode="contained-tonal" 
+                            onPress={() => deleteCustomer(customer.id)}
+                            style={[styles.iconButton, styles.deleteButton]}
+                            compact
+                          />
+                        </View>
+                      )}
+                    />
+                    {index < customers.length - 1 && <Divider style={styles.customerDivider} />}
+                  </View>
+                ))}
+              </View>
             ) : (
-              <Text>No customers added yet</Text>
+              <Text style={styles.emptyMessage}>No customers added yet</Text>
             )}
           </Card.Content>
         </Card>
@@ -213,6 +242,7 @@ export default function CustomerScreen({ navigation }) {
         style={styles.fab}
         icon="file-export"
         onPress={() => navigation.navigate('Export')}
+        color="#fff"
       />
     </SafeAreaView>
   );
@@ -225,28 +255,77 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 16,
+    paddingBottom: 80, // Extra padding for FAB
   },
   card: {
-    marginBottom: 16,
+    marginBottom: 20,
     elevation: 4,
+    borderRadius: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   input: {
     marginBottom: 12,
+    backgroundColor: 'white',
+  },
+  sectionTitleContainer: {
+    marginTop: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
-    marginTop: 16,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 8,
+  },
+  sectionDivider: {
+    backgroundColor: '#2196F3',
+    height: 2,
+  },
+  buttonGroup: {
+    marginTop: 16,
   },
   button: {
     marginTop: 8,
+    borderRadius: 4,
+  },
+  customerList: {
+    backgroundColor: '#fafafa',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  customerItem: {
+    marginVertical: 4,
+  },
+  customerName: {
+    fontWeight: 'bold',
+  },
+  customerEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
+  customerDivider: {
+    height: 1,
   },
   actionButtons: {
     flexDirection: 'row',
   },
   iconButton: {
-    margin: 0,
-    padding: 0,
+    margin: 4,
+    borderRadius: 4,
+  },
+  deleteButton: {
+    backgroundColor: '#ffebee',
+  },
+  emptyMessage: {
+    textAlign: 'center',
+    marginVertical: 20,
+    fontStyle: 'italic',
+    color: '#888',
   },
   fab: {
     position: 'absolute',

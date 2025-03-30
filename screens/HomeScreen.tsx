@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Card, Text, TextInput, FAB, Divider } from 'react-native-paper';
+import { Button, Card, Text, TextInput, FAB, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen({ navigation }) {
+  const theme = useTheme();
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -74,92 +75,123 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <Card style={styles.card}>
-          <Card.Title title="Stopwatch Timer" />
-          <Card.Content>
-            <Text variant="headlineMedium" style={styles.timer}>
-              {formatTime(elapsedTime)}
-            </Text>
-            <TextInput
-              label="Description"
-              value={description}
-              onChangeText={setDescription}
-              style={styles.input}
-            />
-            <View style={styles.buttonContainer}>
-              {!isRunning ? (
-                <Button mode="contained" onPress={startTimer} style={styles.button}>
-                  Start Timer
-                </Button>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.timerSection}>
+          <Card style={styles.timerCard} mode="elevated">
+            <Card.Title title="Stopwatch Timer" titleStyle={styles.cardTitle} />
+            <Card.Content>
+              <View style={styles.timerDisplay}>
+                <Text variant="displaySmall" style={styles.timer}>
+                  {formatTime(elapsedTime)}
+                </Text>
+              </View>
+              <TextInput
+                label="Description"
+                value={description}
+                onChangeText={setDescription}
+                style={styles.input}
+                mode="outlined"
+              />
+              <View style={styles.buttonContainer}>
+                {!isRunning ? (
+                  <Button 
+                    mode="contained" 
+                    onPress={startTimer} 
+                    style={styles.button}
+                    contentStyle={styles.buttonContent}
+                    icon="play"
+                  >
+                    Start Timer
+                  </Button>
+                ) : (
+                  <Button 
+                    mode="contained" 
+                    onPress={stopTimer} 
+                    style={[styles.button, styles.stopButton]}
+                    contentStyle={styles.buttonContent}
+                    icon="stop"
+                  >
+                    Stop Timer
+                  </Button>
+                )}
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <View style={styles.manualSection}>
+          <Card style={styles.card} mode="elevated">
+            <Card.Title title="Manual Time Entry" titleStyle={styles.cardTitle} />
+            <Card.Content>
+              <View style={styles.timeInputContainer}>
+                <TextInput
+                  label="Hours"
+                  value={manualHours}
+                  onChangeText={setManualHours}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                />
+                <TextInput
+                  label="Minutes"
+                  value={manualMinutes}
+                  onChangeText={setManualMinutes}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.timeInput]}
+                  mode="outlined"
+                />
+              </View>
+              <TextInput
+                label="Description"
+                value={description}
+                onChangeText={setDescription}
+                style={styles.input}
+                mode="outlined"
+              />
+              <Button 
+                mode="contained" 
+                onPress={addManualEntry} 
+                style={styles.button}
+                contentStyle={styles.buttonContent}
+                icon="plus"
+              >
+                Add Entry
+              </Button>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <View style={styles.entriesSection}>
+          <Card style={styles.card} mode="elevated">
+            <Card.Title title="Recent Time Entries" titleStyle={styles.cardTitle} />
+            <Card.Content>
+              {timeEntries.length > 0 ? (
+                timeEntries.map((entry, index) => (
+                  <View key={entry.id} style={styles.entryContainer}>
+                    <Text variant="titleMedium" style={styles.entryTitle}>{entry.description}</Text>
+                    <View style={styles.entryDetails}>
+                      <Text style={styles.entryInfo}>Duration: {formatTime(entry.duration)}</Text>
+                      <Text style={styles.entryInfo}>Date: {new Date(entry.timestamp).toLocaleDateString()}</Text>
+                      <Text style={styles.entryInfo}>
+                        Type: {entry.type === 'manual' ? 'Manual Entry' : 'Timer'}
+                      </Text>
+                    </View>
+                    {index < timeEntries.length - 1 && <Divider style={styles.divider} />}
+                  </View>
+                ))
               ) : (
-                <Button mode="contained" onPress={stopTimer} style={[styles.button, styles.stopButton]}>
-                  Stop Timer
-                </Button>
+                <Text style={styles.emptyMessage}>No time entries yet</Text>
               )}
-            </View>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.card}>
-          <Card.Title title="Manual Time Entry" />
-          <Card.Content>
-            <View style={styles.timeInputContainer}>
-              <TextInput
-                label="Hours"
-                value={manualHours}
-                onChangeText={setManualHours}
-                keyboardType="numeric"
-                style={[styles.input, styles.timeInput]}
-              />
-              <TextInput
-                label="Minutes"
-                value={manualMinutes}
-                onChangeText={setManualMinutes}
-                keyboardType="numeric"
-                style={[styles.input, styles.timeInput]}
-              />
-            </View>
-            <TextInput
-              label="Description"
-              value={description}
-              onChangeText={setDescription}
-              style={styles.input}
-            />
-            <Button 
-              mode="contained" 
-              onPress={addManualEntry} 
-              style={styles.button}
-            >
-              Add Entry
-            </Button>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.card}>
-          <Card.Title title="Recent Time Entries" />
-          <Card.Content>
-            {timeEntries.length > 0 ? (
-              timeEntries.map((entry, index) => (
-                <View key={entry.id} style={styles.entryContainer}>
-                  <Text variant="titleMedium">{entry.description}</Text>
-                  <Text>Duration: {formatTime(entry.duration)}</Text>
-                  <Text>Date: {new Date(entry.timestamp).toLocaleDateString()}</Text>
-                  <Text>Type: {entry.type === 'manual' ? 'Manual Entry' : 'Timer'}</Text>
-                  {index < timeEntries.length - 1 && <Divider style={styles.divider} />}
-                </View>
-              ))
-            ) : (
-              <Text>No time entries yet</Text>
-            )}
-          </Card.Content>
-        </Card>
+            </Card.Content>
+          </Card>
+        </View>
       </ScrollView>
 
       <FAB
         style={styles.fab}
         icon="account"
         onPress={() => navigation.navigate('Customer')}
+        color="#fff"
       />
     </SafeAreaView>
   );
@@ -172,19 +204,48 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 16,
+    paddingBottom: 80, // Extra padding at bottom for FAB
+  },
+  timerSection: {
+    marginBottom: 20,
+  },
+  manualSection: {
+    marginBottom: 20,
+  },
+  entriesSection: {
+    marginBottom: 20,
+  },
+  timerCard: {
+    elevation: 4,
+    borderRadius: 8,
   },
   card: {
-    marginBottom: 16,
     elevation: 4,
+    borderRadius: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  timerDisplay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 16,
   },
   timer: {
     textAlign: 'center',
-    marginVertical: 20,
     fontWeight: 'bold',
+    color: '#2196F3',
   },
   input: {
     marginBottom: 12,
+    backgroundColor: 'white',
   },
   timeInputContainer: {
     flexDirection: 'row',
@@ -198,15 +259,42 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
+    borderRadius: 4,
+  },
+  buttonContent: {
+    paddingVertical: 8,
   },
   stopButton: {
     backgroundColor: '#f44336',
   },
   entryContainer: {
-    marginVertical: 8,
+    marginVertical: 12,
+    backgroundColor: '#fafafa',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  entryTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  entryDetails: {
+    marginLeft: 8,
+  },
+  entryInfo: {
+    fontSize: 14,
+    color: '#555',
+    marginVertical: 2,
   },
   divider: {
-    marginVertical: 8,
+    marginVertical: 12,
+  },
+  emptyMessage: {
+    textAlign: 'center',
+    marginVertical: 20,
+    fontStyle: 'italic',
+    color: '#888',
   },
   fab: {
     position: 'absolute',
