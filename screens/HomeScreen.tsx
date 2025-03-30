@@ -212,30 +212,32 @@ export default function HomeScreen({ navigation }) {
                     }
                     left={<TextInput.Icon icon="account-multiple" />}
                   />
-                  
-                  {showCustomerSuggestions && filteredCustomers.length > 0 && (
-                    <Surface style={styles.suggestionsList} elevation={4}>
-                      <FlatList
-                        data={filteredCustomers}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => (
-                          <TouchableOpacity
-                            style={styles.suggestionItem}
-                            onPress={() => {
-                              setSelectedCustomer(item);
-                              setCustomerQuery('');
-                              setShowCustomerSuggestions(false);
-                            }}
-                          >
-                            <Text style={styles.suggestionText}>{item.name}</Text>
-                          </TouchableOpacity>
-                        )}
-                        ItemSeparatorComponent={() => <Divider />}
-                      />
-                    </Surface>
-                  )}
                 </View>
               </View>
+              
+              {/* Customer suggestions list moved outside of inputRow to appear above the button */}
+              {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                <Surface style={styles.suggestionsList} elevation={4}>
+                  <FlatList
+                    data={filteredCustomers}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.suggestionItem}
+                        onPress={() => {
+                          setSelectedCustomer(item);
+                          setCustomerQuery('');
+                          setShowCustomerSuggestions(false);
+                        }}
+                      >
+                        <Text style={styles.suggestionText}>{item.name}</Text>
+                      </TouchableOpacity>
+                    )}
+                    ItemSeparatorComponent={() => <Divider />}
+                  />
+                </Surface>
+              )}
+              
               <View style={styles.buttonContainer}>
                 {!isRunning ? (
                   <Button 
@@ -460,14 +462,10 @@ const styles = StyleSheet.create({
   customerSelector: {
     marginTop: 8,
     marginBottom: 8,
-    position: 'relative',
     zIndex: 1,
   },
   suggestionsList: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
+    marginBottom: 12,
     maxHeight: 200,
     backgroundColor: 'white',
     borderRadius: 4,
