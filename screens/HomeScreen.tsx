@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform, FlatList, TouchableOpacity } from 'react-native';
 import { Button, Card, Text, TextInput, FAB, Divider, useTheme, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
   const theme = useTheme();
@@ -18,29 +19,44 @@ export default function HomeScreen({ navigation }) {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
 
-  // Load customers from CustomerScreen
+  // Load customers from AsyncStorage
   useEffect(() => {
-    // In a real app, this would come from a database or state management
-    // For now, we'll simulate loading customers
     const loadCustomers = async () => {
       try {
-        // This is where you would fetch from AsyncStorage or a database
-        // For this example, we'll use some sample data
-        const savedCustomers = [
-          { id: '1', name: 'Acme Inc.' },
-          { id: '2', name: 'TechCorp' },
-          { id: '3', name: 'GlobalSoft' },
-          { id: '4', name: 'Local Business' },
-          { id: '5', name: 'Startup Co.' }
-        ];
-        setCustomers(savedCustomers);
+        // In a real app with proper state management, this would be cleaner
+        // For now, we'll use a simple approach to load customers
+        const customersFromStorage = await AsyncStorage.getItem('customers');
+        if (customersFromStorage) {
+          setCustomers(JSON.parse(customersFromStorage));
+        } else {
+          // Fallback to default customers if none in storage
+          const defaultCustomers = [
+            { id: '1', name: 'Acme Inc.' },
+            { id: '2', name: 'TechCorp' },
+            { id: '3', name: 'GlobalSoft' }
+          ];
+          setCustomers(defaultCustomers);
+        }
       } catch (error) {
         console.error('Failed to load customers:', error);
+        // Fallback to default customers on error
+        const defaultCustomers = [
+          { id: '1', name: 'Acme Inc.' },
+          { id: '2', name: 'TechCorp' },
+          { id: '3', name: 'GlobalSoft' }
+        ];
+        setCustomers(defaultCustomers);
       }
     };
     
     loadCustomers();
-  }, []);
+    
+    // Add a focus listener to reload customers when the screen comes into focus
+    const unsubscribe = navigation.addListener('focus', loadCustomers);
+    
+    // Clean up the listener when component unmounts
+    return unsubscribe;
+  }, [navigation]);
 
   // Filter customers based on search query
   useEffect(() => {
@@ -84,7 +100,40 @@ export default function HomeScreen({ navigation }) {
     setTimeEntries([entry, ...timeEntries]);
     setElapsedTime(0);
     setDescription('');
+    setSelectedCustomer(null);
+    setCustomerQuery('');
   };
+
+  // Load time entries from AsyncStorage on initial render
+  useEffect(() => {
+    const loadTimeEntries = async () => {
+      try {
+        const savedEntries = await AsyncStorage.getItem('timeEntries');
+        if (savedEntries) {
+          setTimeEntries(JSON.parse(savedEntries));
+        }
+      } catch (error) {
+        console.error('Failed to load time entries:', error);
+      }
+    };
+    
+    loadTimeEntries();
+  }, []);
+
+  // Save time entries to AsyncStorage whenever they change
+  useEffect(() => {
+    const saveTimeEntries = async () => {
+      try {
+        await AsyncStorage.setItem('timeEntries', JSON.stringify(timeEntries));
+      } catch (error) {
+        console.error('Failed to save time entries:', error);
+      }
+    };
+    
+    if (timeEntries.length > 0) {
+      saveTimeEntries();
+    }
+  }, [timeEntries]);
 
   const addManualEntry = () => {
     const hours = parseInt(manualHours) || 0;
@@ -104,6 +153,8 @@ export default function HomeScreen({ navigation }) {
       setManualHours('');
       setManualMinutes('');
       setDescription('');
+      setSelectedCustomer(null);
+      setCustomerQuery('');
     }
   };
 

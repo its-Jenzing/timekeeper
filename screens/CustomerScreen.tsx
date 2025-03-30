@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CustomerScreen({ navigation }) {
   const theme = useTheme();
@@ -43,13 +44,28 @@ export default function CustomerScreen({ navigation }) {
   const [billingPhone, setBillingPhone] = useState('');
   const [editingId, setEditingId] = useState(null);
 
+  // Load customers from storage on initial render
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const savedCustomers = await AsyncStorage.getItem('customers');
+        if (savedCustomers) {
+          setCustomers(JSON.parse(savedCustomers));
+        }
+      } catch (error) {
+        console.error('Failed to load customers:', error);
+      }
+    };
+    
+    loadCustomers();
+  }, []);
+
   // Save customers to storage whenever the list changes
   useEffect(() => {
     const saveCustomersToStorage = async () => {
       try {
-        // In a real app, you would save to AsyncStorage or a database
+        await AsyncStorage.setItem('customers', JSON.stringify(customers));
         console.log('Customers saved:', customers);
-        // This is where you would implement persistence
       } catch (error) {
         console.error('Failed to save customers:', error);
       }

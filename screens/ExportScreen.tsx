@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Button, Card, Text, Checkbox, Divider, List, useTheme, Surface } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ExportScreen({ navigation }) {
   const theme = useTheme();
   // In a real app, this data would come from your database or state management
-  const [timeEntries] = useState([
+  const [timeEntries, setTimeEntries] = useState([
     {
       id: '1',
       description: 'Website Development',
@@ -37,8 +38,32 @@ export default function ExportScreen({ navigation }) {
 
   const [selectedEntries, setSelectedEntries] = useState({});
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customers, setCustomers] = useState([]);
 
-  const customers = [...new Set(timeEntries.map(entry => entry.customer))];
+  // Load customers from AsyncStorage
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const customersFromStorage = await AsyncStorage.getItem('customers');
+        if (customersFromStorage) {
+          setCustomers(JSON.parse(customersFromStorage));
+        }
+      } catch (error) {
+        console.error('Failed to load customers:', error);
+      }
+    };
+    
+    loadCustomers();
+    
+    // Add a focus listener to reload customers when the screen comes into focus
+    const unsubscribe = navigation.addListener('focus', loadCustomers);
+    
+    // Clean up the listener when component unmounts
+    return unsubscribe;
+  }, [navigation]);
+
+  // Get unique customer names from time entries
+  const customerNames = [...new Set(timeEntries.map(entry => entry.customer))];
 
   const toggleEntrySelection = (id) => {
     setSelectedEntries({
@@ -70,6 +95,28 @@ export default function ExportScreen({ navigation }) {
       setSelectedEntries({});
     }
   };
+
+  // Load time entries from AsyncStorage
+  useEffect(() => {
+    const loadTimeEntries = async () => {
+      try {
+        const entriesFromStorage = await AsyncStorage.getItem('timeEntries');
+        if (entriesFromStorage) {
+          setTimeEntries(JSON.parse(entriesFromStorage));
+        }
+      } catch (error) {
+        console.error('Failed to load time entries:', error);
+      }
+    };
+    
+    loadTimeEntries();
+    
+    // Add a focus listener to reload time entries when the screen comes into focus
+    const unsubscribe = navigation.addListener('focus', loadTimeEntries);
+    
+    // Clean up the listener when component unmounts
+    return unsubscribe;
+  }, [navigation]);
 
   const formatTime = (milliseconds) => {
     const totalSeconds = Math.floor(milliseconds / 1000);
@@ -197,7 +244,7 @@ export default function ExportScreen({ navigation }) {
             <View style={styles.filterContainer}>
               <Text variant="titleMedium" style={styles.sectionTitle}>Filter by Customer:</Text>
               <View style={styles.customerFilters}>
-                {customers.map(customer => (
+                {customerNames.map(customer => (
                   <Button 
                     key={customer}
                     mode={selectedCustomer === customer ? "contained" : "outlined"}
