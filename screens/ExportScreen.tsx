@@ -182,8 +182,8 @@ export default function ExportScreen({ navigation }) {
       if (Platform.OS === 'web') {
         // For Windows/Web, show a message first then generate PDF
         Alert.alert(
-          'Download PDF Report', 
-          'A new window will open with your report. Click "Download as PDF" in that window to save the report.',
+          'Generate PDF Report', 
+          'A new window will open with your report. When the print dialog appears, select "Save as PDF" as the destination to download your report.',
           [
             { 
               text: 'Cancel',
@@ -333,7 +333,7 @@ export default function ExportScreen({ navigation }) {
               disabled={Object.keys(selectedEntries).length === 0}
               key="export-pdf-button"
             >
-              {Platform.OS === 'web' ? 'Download PDF Report' : 'Generate PDF Report'}
+              {Platform.OS === 'web' ? 'Save as PDF (Windows)' : 'Generate PDF Report'}
             </Button>
           </Card.Content>
         </Card>

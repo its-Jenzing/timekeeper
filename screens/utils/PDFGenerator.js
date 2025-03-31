@@ -703,8 +703,6 @@ const handleWebPdfGeneration = async (html) => {
               }
             }
           </style>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
         </head>
         <body>
           <div class="controls">
@@ -720,11 +718,9 @@ const handleWebPdfGeneration = async (html) => {
               window.print();
             });
             
-            // PDF Download functionality
+            // PDF Download functionality - using browser's print to PDF functionality
             document.getElementById('downloadPdf').addEventListener('click', function() {
-              const { jsPDF } = window.jspdf;
-              
-              // Create loading message
+              // Create a loading message
               const loadingMsg = document.createElement('div');
               loadingMsg.style.position = 'fixed';
               loadingMsg.style.top = '0';
@@ -735,68 +731,32 @@ const handleWebPdfGeneration = async (html) => {
               loadingMsg.style.padding = '20px';
               loadingMsg.style.textAlign = 'center';
               loadingMsg.style.zIndex = '9999';
-              loadingMsg.innerHTML = '<h2>Generating PDF, please wait...</h2>';
+              loadingMsg.innerHTML = '<h2>Opening print dialog...</h2><p>Select "Save as PDF" as the destination</p>';
               document.body.appendChild(loadingMsg);
               
-              // Hide controls during capture
+              // Hide controls during printing
               document.querySelector('.controls').style.display = 'none';
               
               setTimeout(function() {
                 try {
-                  const content = document.getElementById('reportContent');
+                  // Trigger the print dialog
+                  window.print();
                   
-                  // Create PDF with multiple pages if needed
-                  const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                  });
-                  
-                  html2canvas(content, {
-                    scale: 1.5,
-                    useCORS: true,
-                    logging: false
-                  }).then(canvas => {
-                    // A4 dimensions: 210 x 297 mm
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    const imgWidth = 190; // slightly less than A4 width
-                    const pageHeight = 287;
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 5; // starting at 5mm from the top
-                    
-                    pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                    
-                    // Add new pages if the content is longer than one page
-                    while (heightLeft > 0) {
-                      position = heightLeft - imgHeight; // top of the new page
-                      pdf.addPage();
-                      pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
-                      heightLeft -= pageHeight;
-                    }
-                    
-                    // Generate timestamp for filename
-                    const now = new Date();
-                    const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
-                    
-                    // Save the PDF
-                    pdf.save('time-report-' + timestamp + '.pdf');
-                    
-                    // Show controls again and remove loading message
+                  // Show controls again and update message after print dialog is shown
+                  setTimeout(() => {
                     document.querySelector('.controls').style.display = 'block';
                     document.body.removeChild(loadingMsg);
-                  });
+                  }, 1000);
                 } catch (err) {
-                  console.error('PDF generation error:', err);
-                  alert('Error generating PDF: ' + err.message);
+                  console.error('Print error:', err);
+                  alert('Error opening print dialog: ' + err.message);
                   document.querySelector('.controls').style.display = 'block';
                   document.body.removeChild(loadingMsg);
                 }
               }, 500);
             });
             
-            // Auto-trigger download after 1 second
+            // Auto-trigger print dialog after a short delay
             setTimeout(function() {
               document.getElementById('downloadPdf').click();
             }, 1000);
