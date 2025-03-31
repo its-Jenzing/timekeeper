@@ -179,23 +179,43 @@ export default function ExportScreen({ navigation }) {
         dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
       }
       
-      // Generate HTML for the PDF without using Alert which might cause screenshot issues
+      // Create a separate HTML document for the PDF report
       const html = generateReportHTML(selectedTimeEntries, dateRangeText);
       
-      // Use Print.printAsync instead of printToFileAsync to directly print to PDF
-      // This bypasses the WebView rendering which might be causing the screenshot issue
-      await Print.printAsync({
+      // Use a direct approach to generate the PDF
+      const { uri } = await Print.printToFileAsync({
         html,
-        orientation: Print.Orientation.portrait,
+        base64: false,
       });
+      
+      console.log('PDF file created at:', uri);
+      
+      // Open the PDF directly instead of sharing it
+      // This ensures we're not capturing a screenshot
+      if (Platform.OS === 'web') {
+        // For web, open in a new tab
+        window.open(uri, '_blank');
+      } else {
+        // For mobile, share the file
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Time Tracking Report',
+            UTI: 'com.adobe.pdf'
+          });
+        } else {
+          Alert.alert('Sharing Not Available', 'Sharing is not available on your platform');
+        }
+      }
     } catch (error) {
       console.error('PDF Export Error:', error);
       Alert.alert('Export Error', `An error occurred: ${error.message}`);
     }
   };
   
-  // Generate HTML for the PDF report
+  // Generate a complete standalone HTML document for the PDF report
   const generateReportHTML = (selectedTimeEntries, dateRangeText) => {
+    console.log('Generating PDF report with', selectedTimeEntries.length, 'entries');
     if (selectedTimeEntries.length === 0) {
       return '<h1>No entries selected</h1>';
     }
@@ -875,11 +895,11 @@ export default function ExportScreen({ navigation }) {
               onPress={exportToPDF} 
               style={styles.exportButton}
               contentStyle={styles.exportButtonContent}
-              icon="printer"
+              icon="file-pdf-box"
               disabled={Object.keys(selectedEntries).length === 0}
               key="export-pdf-button"
             >
-              Print Report
+              Generate PDF Report
             </Button>
           </Card.Content>
         </Card>
