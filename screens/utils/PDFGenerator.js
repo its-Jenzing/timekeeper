@@ -1,3 +1,4 @@
+import * as FileSystem from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
@@ -18,8 +19,10 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
     // Show loading indicator
     Alert.alert('Generating PDF', 'Please wait while your PDF is being generated...');
     
+    // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
     
+    // Generate PDF directly from HTML content
     const { uri } = await Print.printToFileAsync({ 
       html,
       base64: false,
@@ -27,8 +30,19 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
       height: 792, // Standard US Letter height in points (11 inches)
     });
     
+    // Create a more descriptive filename with date
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const newFilePath = `${FileSystem.cacheDirectory}time-report-${timestamp}.pdf`;
+    
+    // Copy the file to give it a better name
+    await FileSystem.copyAsync({
+      from: uri,
+      to: newFilePath
+    });
+    
+    // Share the PDF file
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(newFilePath, {
         mimeType: 'application/pdf',
         dialogTitle: 'Time Tracking Report',
         UTI: 'com.adobe.pdf'
@@ -36,6 +50,9 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
     } else {
       Alert.alert('Sharing Not Available', 'Sharing is not available on your platform');
     }
+    
+    // Clean up the temporary file
+    await FileSystem.deleteAsync(uri, { idempotent: true });
   } catch (error) {
     Alert.alert('Export Error', `An error occurred: ${error.message}`);
   }
