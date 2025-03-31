@@ -1,7 +1,8 @@
 import * as FileSystem from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 /**
  * Generates and shares a PDF report of time entries
@@ -22,7 +23,14 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
     // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
     
-    // Generate PDF directly from HTML content
+    // Handle PDF generation differently based on platform
+    if (Platform.OS === 'web') {
+      // For web (Windows/browser), use a different approach
+      await handleWebPdfGeneration(html);
+      return;
+    }
+    
+    // For native platforms (iOS/Android)
     const { uri } = await Print.printToFileAsync({ 
       html,
       base64: false,
@@ -620,6 +628,67 @@ const generateReportHTML = (selectedTimeEntries, dateRangeText, formatTime) => {
   `;
 
   return html;
+};
+
+/**
+ * Handles PDF generation specifically for web platforms (Windows/browsers)
+ * @param {String} html - The HTML content to convert to PDF
+ */
+const handleWebPdfGeneration = async (html) => {
+  try {
+    // Create a blob from the HTML content
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a hidden iframe to handle the PDF generation
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      try {
+        // Access the iframe's content and add print-specific CSS
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const style = iframeDoc.createElement('style');
+        style.textContent = `
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            @page {
+              size: letter portrait;
+              margin: 0.5in;
+            }
+          }
+        `;
+        iframeDoc.head.appendChild(style);
+        
+        // Trigger print after a short delay to ensure styles are applied
+        setTimeout(() => {
+          iframe.contentWindow.print();
+          // Clean up after printing dialog is closed
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 1000);
+        }, 500);
+      } catch (error) {
+        console.error('Error in iframe print handling:', error);
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(url);
+        
+        // Fallback to opening in a new tab if iframe method fails
+        window.open(url, '_blank');
+      }
+    };
+    
+    // Set the iframe source to the blob URL
+    iframe.src = url;
+  } catch (error) {
+    console.error('Web PDF generation error:', error);
+    Alert.alert('Export Error', 'Failed to generate PDF in browser. Please try again.');
+  }
 };
 
 // Helper function to generate random colors for the pie chart
