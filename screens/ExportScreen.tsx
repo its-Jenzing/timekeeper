@@ -179,19 +179,24 @@ export default function ExportScreen({ navigation }) {
         dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
       }
       
-      // Show loading indicator
-      Alert.alert('Generating PDF', 'Please wait while your PDF is being generated...');
+      // Show loading indicator without using Alert which blocks the UI
+      // and might be causing the screenshot issue
+      console.log('Generating PDF report...');
       
-      // Directly use the PDF generation code here instead of the utility
-      // to ensure it's working properly
+      // Generate HTML for the PDF
       const html = generateReportHTML(selectedTimeEntries, dateRangeText);
       
-      const { uri } = await Print.printToFileAsync({ 
+      // Use printToFileAsync with explicit options to ensure proper PDF generation
+      const { uri } = await Print.printToFileAsync({
         html,
         base64: false,
         width: 612, // Standard US Letter width in points (8.5 inches)
-        height: 792, // Standard US Letter height in points (11 inches)
+        height: 792, // Standard US Letter height in points (11 inches),
+        // Ensure we're not capturing the screen but generating a PDF from HTML
+        printerUrl: 'pdf',
       });
+      
+      console.log('PDF generated at:', uri);
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
@@ -891,8 +896,10 @@ export default function ExportScreen({ navigation }) {
               contentStyle={styles.exportButtonContent}
               icon="file-pdf-box"
               disabled={Object.keys(selectedEntries).length === 0}
+              // Add a key to ensure the component is properly re-rendered
+              key="export-pdf-button"
             >
-              Export to PDF
+              Generate PDF Report
             </Button>
           </Card.Content>
         </Card>
