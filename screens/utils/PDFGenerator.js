@@ -758,7 +758,7 @@ const handleWebPdfGeneration = async (html) => {
       [{ text: 'OK' }]
     );
   }
-  } catch (error) {
+ catch (error) {
     console.error('Web PDF generation error:', error);
     Alert.alert('Export Error', 'Failed to generate PDF in browser. Please try again.');
   }
