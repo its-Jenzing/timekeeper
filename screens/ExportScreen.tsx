@@ -179,37 +179,18 @@ export default function ExportScreen({ navigation }) {
         dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
       }
       
-      // Show loading indicator without using Alert which blocks the UI
-      // and might be causing the screenshot issue
-      console.log('Generating PDF report...');
-      
-      // Generate HTML for the PDF
+      // Generate HTML for the PDF without using Alert which might cause screenshot issues
       const html = generateReportHTML(selectedTimeEntries, dateRangeText);
       
-      // Use printToFileAsync with explicit options to ensure proper PDF generation
-      const { uri } = await Print.printToFileAsync({
+      // Use Print.printAsync instead of printToFileAsync to directly print to PDF
+      // This bypasses the WebView rendering which might be causing the screenshot issue
+      await Print.printAsync({
         html,
-        base64: false,
-        width: 612, // Standard US Letter width in points (8.5 inches)
-        height: 792, // Standard US Letter height in points (11 inches),
-        // Ensure we're not capturing the screen but generating a PDF from HTML
-        printerUrl: 'pdf',
+        orientation: Print.Orientation.portrait,
       });
-      
-      console.log('PDF generated at:', uri);
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Time Tracking Report',
-          UTI: 'com.adobe.pdf'
-        });
-      } else {
-        Alert.alert('Sharing Not Available', 'Sharing is not available on your platform');
-      }
     } catch (error) {
-      Alert.alert('Export Error', `An error occurred: ${error.message}`);
       console.error('PDF Export Error:', error);
+      Alert.alert('Export Error', `An error occurred: ${error.message}`);
     }
   };
   
@@ -894,12 +875,11 @@ export default function ExportScreen({ navigation }) {
               onPress={exportToPDF} 
               style={styles.exportButton}
               contentStyle={styles.exportButtonContent}
-              icon="file-pdf-box"
+              icon="printer"
               disabled={Object.keys(selectedEntries).length === 0}
-              // Add a key to ensure the component is properly re-rendered
               key="export-pdf-button"
             >
-              Generate PDF Report
+              Print Report
             </Button>
           </Card.Content>
         </Card>
