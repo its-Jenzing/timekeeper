@@ -16,8 +16,8 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
       return;
     }
     
-    // Show loading indicator
-    Alert.alert('Generating PDF', 'Please wait while your PDF is being generated...');
+    // Show loading indicator with count of entries
+    Alert.alert('Generating PDF', `Creating report with ${selectedTimeEntries.length} time entries. Please wait...`);
     
     // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
