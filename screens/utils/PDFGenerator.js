@@ -636,55 +636,105 @@ const generateReportHTML = (selectedTimeEntries, dateRangeText, formatTime) => {
  */
 const handleWebPdfGeneration = async (html) => {
   try {
+    // Add PDF-specific styles to the HTML
+    const enhancedHtml = html.replace('</head>', `
+      <style>
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          @page {
+            size: letter portrait;
+            margin: 0.5in;
+          }
+        }
+        
+        /* Add a print button for better UX */
+        .print-button {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 10px 20px;
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 16px;
+          z-index: 9999;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .print-button:hover {
+          background-color: #45a049;
+        }
+        
+        @media print {
+          .print-button {
+            display: none;
+          }
+        }
+      </style>
+    </head>`);
+    
+    // Add a print button to the body
+    const htmlWithButton = enhancedHtml.replace('<body>', `
+      <body>
+        <button class="print-button" onclick="window.print(); return false;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 8H5C3.34 8 2 9.34 2 11V17H6V21H18V17H22V11C22 9.34 20.66 8 19 8Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 8V3H18V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 17H18V21H6V17Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Save as PDF
+        </button>
+    `);
+    
     // Create a blob from the HTML content
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([htmlWithButton], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Create a hidden iframe to handle the PDF generation
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+    // Open in a new window with specific features
+    const newWindow = window.open(url, '_blank', 'width=1000,height=800,menubar=yes,toolbar=yes');
     
-    iframe.onload = () => {
-      try {
-        // Access the iframe's content and add print-specific CSS
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        const style = iframeDoc.createElement('style');
-        style.textContent = `
-          @media print {
-            body {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            @page {
-              size: letter portrait;
-              margin: 0.5in;
-            }
-          }
-        `;
-        iframeDoc.head.appendChild(style);
-        
-        // Trigger print after a short delay to ensure styles are applied
-        setTimeout(() => {
-          iframe.contentWindow.print();
-          // Clean up after printing dialog is closed
+    // If popup was blocked, fallback to iframe method
+    if (!newWindow) {
+      console.log('Popup blocked, using iframe method');
+      
+      // Create a hidden iframe to handle the PDF generation
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = () => {
+        try {
+          // Trigger print after a short delay to ensure styles are applied
           setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-          }, 1000);
-        }, 500);
-      } catch (error) {
-        console.error('Error in iframe print handling:', error);
-        document.body.removeChild(iframe);
-        URL.revokeObjectURL(url);
-        
-        // Fallback to opening in a new tab if iframe method fails
-        window.open(url, '_blank');
-      }
-    };
-    
-    // Set the iframe source to the blob URL
-    iframe.src = url;
+            iframe.contentWindow.print();
+            // Clean up after printing dialog is closed
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            }, 1000);
+          }, 500);
+        } catch (error) {
+          console.error('Error in iframe print handling:', error);
+          document.body.removeChild(iframe);
+          URL.revokeObjectURL(url);
+          
+          // Final fallback - just open in a new tab
+          window.open(url, '_blank');
+        }
+      };
+      
+      // Set the iframe source to the blob URL
+      iframe.src = url;
+    }
   } catch (error) {
     console.error('Web PDF generation error:', error);
     Alert.alert('Export Error', 'Failed to generate PDF in browser. Please try again.');

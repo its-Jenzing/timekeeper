@@ -178,8 +178,19 @@ export default function ExportScreen({ navigation }) {
         dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
       }
       
-      // Use the PDFGenerator to generate and share the PDF
-      await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
+      // Show platform-specific message
+      if (Platform.OS === 'web') {
+        Alert.alert('Generating PDF', 
+          'Your PDF will open in a new window. If you see a print dialog, select "Save as PDF" option.',
+          [{ text: 'OK', onPress: async () => {
+            // Use the PDFGenerator to generate and share the PDF
+            await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
+          }}]
+        );
+      } else {
+        // Use the PDFGenerator to generate and share the PDF directly on mobile
+        await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
+      }
       
     } catch (error) {
       console.error('PDF Export Error:', error);
@@ -301,7 +312,7 @@ export default function ExportScreen({ navigation }) {
               disabled={Object.keys(selectedEntries).length === 0}
               key="export-pdf-button"
             >
-              Generate PDF Report
+              {Platform.OS === 'web' ? 'Generate PDF Report (Windows/Web)' : 'Generate PDF Report'}
             </Button>
           </Card.Content>
         </Card>
