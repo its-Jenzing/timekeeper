@@ -1,34 +1,16 @@
+In customers, the email feild and phone field needs to include the following, 
+
+On mobile devices, For hte phone sections it needs to trigger a number keyboard not a full keyboard. 
+
+When entered it needs to display the correct format (555)123-45675
 
 
-Time account app    
-
-The goal of this app is to allow me to account for time that I have worked, I want a simple app that I can account time for a company that my IT buisness is charging them. 
-
-I want a base app first, that is what we will be building then The app will be running the app later down development line to a server, the server is to allow me to run it on my pc as well! We will base this on expo/react
-
-
-I want to have the following screens
-
-Home
-
-the ability to manually enter time,
-A Clock stop watch to start and end time
+Email must include a @ and domain like (@example.com) to be allowed to enter.
 
 
 
 
-Customer
-customer data entry, with a billing contact. 
+For the export portion we need a past week export that gives everything in the past week of the dates given on hours as a pdf
 
 
-
-Export, 
-
-
-I want to export the time I have worked and for the buisness in a nice looking PDF for my boss. 
-
-
-
-
-
-
+Additionally, we need to remake the PDF itself, I do not like how it is just a screenshot, make it a designed good looking pdf. That breaks down the time based on customer and description 
