@@ -1,50 +1,89 @@
-# Welcome to your Expo app 👋
+# Time Account App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile application for tracking time entries, managing customers, and generating reports.
 
-## Get started
+## What It Does
 
-1. Install dependencies
+This app helps freelancers, consultants, and small businesses track their time spent on different projects and for different customers. Key features include:
 
+- **Time Tracking**: Create and manage time entries with descriptions, durations, and timestamps
+- **Customer Management**: Add, edit, and delete customer information including contact details
+- **Filtering**: Filter time entries by customer and date range
+- **Export**: Generate and share PDF reports of time entries with customizable date ranges
+- **Data Visualization**: View time data in chart format for better insights
+
+## Screens
+
+### Home Screen
+- Create new time entries
+- View and manage existing time entries
+- Filter entries by customer
+- Quick access to frequently used customers
+
+### Customer Screen
+- Add new customers
+- Edit customer information including:
+  - Name
+  - Email
+  - Phone
+  - Billing contact information
+
+### Export Screen
+- Select time entries to export
+- Filter by customer or date range
+- Generate PDF reports
+- Share reports via email or other apps
+
+## Requirements
+
+- Node.js (v14 or newer)
+- npm or yarn
+- Expo CLI
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone [repository-url]
+   cd time-account-app
+   ```
+
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. Start the development server:
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Running the App
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+After starting the development server, you can run the app in several ways:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **On a physical device**: Scan the QR code with the Expo Go app
+- **On an emulator**: Press 'a' for Android or 'i' for iOS in the terminal
+- **On the web**: Press 'w' to open in a web browser
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
+- `/screens`: Main application screens (Home, Customer, Export)
+- `/components`: Reusable UI components like TabBar
+- `/assets`: Images, fonts, and other static assets
+- `/utils`: Utility functions including PDF generation
 
-```bash
-npm run reset-project
-```
+## Technologies Used
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- React Native / Expo
+- React Native Paper (UI components)
+- React Navigation
+- PDF generation and export functionality
 
-## Learn more
+## Contributing
 
-To learn more about developing your project with Expo, look at the following resources:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## License
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+[MIT License]
