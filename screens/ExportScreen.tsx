@@ -183,14 +183,14 @@ export default function ExportScreen({ navigation }) {
         // For Windows/Web, show a message first then generate PDF
         Alert.alert(
           'Download PDF Report', 
-          'Your PDF will be generated and downloaded directly to your computer.',
+          'A new window will open with your report. Click "Download as PDF" in that window to save the report.',
           [
             { 
               text: 'Cancel',
               style: 'cancel'
             },
             { 
-              text: 'Download PDF', 
+              text: 'Continue', 
               onPress: () => {
                 // Use setTimeout to ensure the alert is dismissed before PDF generation starts
                 setTimeout(async () => {
@@ -200,7 +200,7 @@ export default function ExportScreen({ navigation }) {
                   } catch (pdfError) {
                     console.error("PDF generation error:", pdfError);
                     Alert.alert('PDF Generation Failed', 
-                      'There was an error generating your PDF. Please try again.'
+                      'There was an error generating your PDF. Please ensure popups are allowed for this site and try again.'
                     );
                   }
                 }, 500);

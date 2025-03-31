@@ -23,16 +23,12 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
     if (Platform.OS !== 'web') {
       // Only show this alert on mobile platforms
       Alert.alert('Generating PDF', `Creating report with ${selectedTimeEntries.length} time entries. Please wait...`);
+    } else {
+      console.log("Web platform detected, preparing for PDF generation");
     }
     
     // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
-  
-    // Add data attributes for fallback PDF generation
-    const entriesWithFormatted = selectedTimeEntries.map(entry => ({
-      ...entry,
-      formattedDuration: formatTime(entry.duration)
-    }));
     
     // Handle PDF generation differently based on platform
     if (Platform.OS === 'web') {
@@ -647,114 +643,176 @@ const generateReportHTML = (selectedTimeEntries, dateRangeText, formatTime) => {
  */
 const handleWebPdfGeneration = async (html) => {
   try {
-    console.log("Starting web PDF generation with direct download approach");
+    console.log("Starting web PDF generation with direct approach");
     
-    // Import jsPDF dynamically (only in web environment)
-    const jsPDFModule = await import('jspdf');
-    const { jsPDF } = jsPDFModule.default || jsPDFModule;
-    
-    // Import html2canvas dynamically
-    const html2canvasModule = await import('html2canvas');
-    const html2canvas = html2canvasModule.default || html2canvasModule;
-    
-    console.log("Libraries loaded successfully");
-    
-    // Create a temporary container to render the HTML
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '816px'; // 8.5 inches at 96 DPI
-    container.innerHTML = html;
-    document.body.appendChild(container);
-    
-    // Create a new PDF document (Letter size: 8.5 x 11 inches)
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'in',
-      format: 'letter'
-    });
-    
-    console.log("Rendering HTML to canvas");
-    
-    try {
-      // Render the HTML to a canvas
-      const canvas = await html2canvas(container, {
-        scale: 2, // Higher scale for better quality
-        useCORS: true,
-        logging: false,
-        allowTaint: true
-      });
-      
-      console.log("Canvas rendering complete");
-      
-      // Convert the canvas to an image
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      // Add the image to the PDF
-      pdf.addImage(imgData, 'JPEG', 0.5, 0.5, 7.5, 10, '', 'FAST');
-      
-      // Generate timestamp for filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      
-      // Save the PDF
-      pdf.save(`time-report-${timestamp}.pdf`);
-      
-      console.log("PDF saved successfully");
-      
-      // Clean up
-      document.body.removeChild(container);
-      
-      // Show success message
-      Alert.alert(
-        'PDF Generated',
-        'Your PDF has been downloaded successfully.',
-        [{ text: 'OK' }]
-      );
-    } catch (renderError) {
-      console.error("Error rendering HTML:", renderError);
-      
-      // Fallback to simpler approach if rendering fails
-      document.body.removeChild(container);
-      
-      // Create a simple PDF with basic text
-      const pdf = new jsPDF();
-      pdf.setFontSize(22);
-      pdf.text('Time Tracking Report', 105, 20, { align: 'center' });
-      pdf.setFontSize(12);
-      
-      let y = 40;
-      const lineHeight = 7;
-      
-      // Add basic information about time entries
-      pdf.text('Time Entries Report', 20, y); y += lineHeight * 2;
-      
-      // Add each time entry as text
-      const timeEntries = JSON.parse(container.getAttribute('data-entries') || '[]');
-      timeEntries.forEach((entry, index) => {
-        pdf.text(`Entry ${index + 1}: ${entry.description || 'No description'}`, 20, y); y += lineHeight;
-        pdf.text(`Duration: ${entry.formattedDuration || 'Unknown'}`, 30, y); y += lineHeight;
-        pdf.text(`Customer: ${entry.customer || 'Unassigned'}`, 30, y); y += lineHeight;
-        pdf.text(`Date: ${new Date(entry.timestamp).toLocaleDateString()}`, 30, y); y += lineHeight * 1.5;
-      });
-      
-      // Generate timestamp for filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      
-      // Save the PDF
-      pdf.save(`time-report-simple-${timestamp}.pdf`);
-      
-      Alert.alert(
-        'Simple PDF Generated',
-        'A simplified PDF has been downloaded due to rendering issues with the full report.',
-        [{ text: 'OK' }]
-      );
+    // Create a simple HTML document with the content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error("Popup blocked. Please allow popups for this site.");
     }
+    
+    // Write the HTML content to the new window
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Time Tracking Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              max-width: 1000px;
+              margin: 0 auto;
+            }
+            .controls {
+              position: fixed;
+              top: 10px;
+              right: 10px;
+              background: #f0f0f0;
+              padding: 10px;
+              border-radius: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .download-btn {
+              background: #4CAF50;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              font-size: 16px;
+              cursor: pointer;
+              border-radius: 4px;
+              display: block;
+              margin-bottom: 10px;
+              width: 100%;
+            }
+            .print-btn {
+              background: #2196F3;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              font-size: 16px;
+              cursor: pointer;
+              border-radius: 4px;
+              display: block;
+              width: 100%;
+            }
+            @media print {
+              .controls {
+                display: none;
+              }
+            }
+          </style>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        </head>
+        <body>
+          <div class="controls">
+            <button class="download-btn" id="downloadPdf">Download as PDF</button>
+            <button class="print-btn" id="printReport">Print Report</button>
+          </div>
+          <div id="reportContent">
+            ${html}
+          </div>
+          <script>
+            // Print functionality
+            document.getElementById('printReport').addEventListener('click', function() {
+              window.print();
+            });
+            
+            // PDF Download functionality
+            document.getElementById('downloadPdf').addEventListener('click', function() {
+              const { jsPDF } = window.jspdf;
+              
+              // Create loading message
+              const loadingMsg = document.createElement('div');
+              loadingMsg.style.position = 'fixed';
+              loadingMsg.style.top = '0';
+              loadingMsg.style.left = '0';
+              loadingMsg.style.width = '100%';
+              loadingMsg.style.backgroundColor = 'rgba(0,0,0,0.7)';
+              loadingMsg.style.color = 'white';
+              loadingMsg.style.padding = '20px';
+              loadingMsg.style.textAlign = 'center';
+              loadingMsg.style.zIndex = '9999';
+              loadingMsg.innerHTML = '<h2>Generating PDF, please wait...</h2>';
+              document.body.appendChild(loadingMsg);
+              
+              // Hide controls during capture
+              document.querySelector('.controls').style.display = 'none';
+              
+              setTimeout(function() {
+                try {
+                  const content = document.getElementById('reportContent');
+                  
+                  // Create PDF with multiple pages if needed
+                  const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                  });
+                  
+                  html2canvas(content, {
+                    scale: 1.5,
+                    useCORS: true,
+                    logging: false
+                  }).then(canvas => {
+                    // A4 dimensions: 210 x 297 mm
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const imgWidth = 190; // slightly less than A4 width
+                    const pageHeight = 287;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 5; // starting at 5mm from the top
+                    
+                    pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    
+                    // Add new pages if the content is longer than one page
+                    while (heightLeft > 0) {
+                      position = heightLeft - imgHeight; // top of the new page
+                      pdf.addPage();
+                      pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
+                      heightLeft -= pageHeight;
+                    }
+                    
+                    // Generate timestamp for filename
+                    const now = new Date();
+                    const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                    
+                    // Save the PDF
+                    pdf.save('time-report-' + timestamp + '.pdf');
+                    
+                    // Show controls again and remove loading message
+                    document.querySelector('.controls').style.display = 'block';
+                    document.body.removeChild(loadingMsg);
+                  });
+                } catch (err) {
+                  console.error('PDF generation error:', err);
+                  alert('Error generating PDF: ' + err.message);
+                  document.querySelector('.controls').style.display = 'block';
+                  document.body.removeChild(loadingMsg);
+                }
+              }, 500);
+            });
+            
+            // Auto-trigger download after 1 second
+            setTimeout(function() {
+              document.getElementById('downloadPdf').click();
+            }, 1000);
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    console.log("Report window opened successfully");
+    
   } catch (error) {
     console.error('Web PDF generation error:', error);
     Alert.alert(
       'PDF Generation Failed',
-      'There was an error generating your PDF. Please try again later.',
+      'There was an error generating your PDF: ' + error.message + '. Please ensure popups are allowed for this site.',
       [{ text: 'OK' }]
     );
   }
