@@ -188,6 +188,13 @@ export default function ExportScreen({ navigation }) {
       });
     });
 
+    // Calculate total hours per customer for pie chart data
+    const customerTotals = {};
+    Object.keys(entriesByCustomer).forEach(customer => {
+      const customerTotal = entriesByCustomer[customer].reduce((total, entry) => total + entry.duration, 0);
+      customerTotals[customer] = customerTotal;
+    });
+
     // Get date range for report title
     let dateRangeText = "All Time";
     if (dateFilter === 'week') {
@@ -200,6 +207,22 @@ export default function ExportScreen({ navigation }) {
       dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
     }
 
+    // Generate random colors for the pie chart
+    const generateRandomColor = () => {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    };
+
+    // Create pie chart data
+    const pieChartColors = {};
+    Object.keys(customerTotals).forEach(customer => {
+      pieChartColors[customer] = generateRandomColor();
+    });
+
     let html = `
       <!DOCTYPE html>
       <html>
@@ -208,7 +231,7 @@ export default function ExportScreen({ navigation }) {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Time Tracking Report</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
             
             * {
               box-sizing: border-box;
@@ -217,9 +240,9 @@ export default function ExportScreen({ navigation }) {
             }
             
             body { 
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-              line-height: 1.5;
-              color: #1a1a1a;
+              font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+              line-height: 1.6;
+              color: #333;
               background-color: #fff;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
@@ -233,15 +256,16 @@ export default function ExportScreen({ navigation }) {
             
             .header {
               position: relative;
-              margin-bottom: 50px;
-              padding-bottom: 20px;
-              border-bottom: 1px solid #e0e0e0;
+              margin-bottom: 40px;
             }
             
-            .header-content {
+            .header-top {
               display: flex;
               justify-content: space-between;
-              align-items: flex-start;
+              align-items: center;
+              margin-bottom: 20px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #f3f4f6;
             }
             
             .header-left {
@@ -256,100 +280,174 @@ export default function ExportScreen({ navigation }) {
             .logo {
               font-size: 28px;
               font-weight: 700;
-              color: #3b82f6;
-              margin-bottom: 10px;
+              color: #4f46e5;
               letter-spacing: -0.5px;
             }
             
             .report-title {
-              font-size: 32px;
-              font-weight: 700;
-              color: #1a1a1a;
-              margin: 20px 0 10px 0;
-              letter-spacing: -0.5px;
+              font-size: 36px;
+              font-weight: 800;
+              color: #111827;
+              margin: 20px 0 15px 0;
+              letter-spacing: -1px;
             }
             
             .date-generated {
               font-size: 14px;
-              color: #666;
+              color: #6b7280;
               margin-top: 5px;
             }
             
             .date-range {
               display: inline-block;
-              font-size: 14px;
+              font-size: 15px;
               font-weight: 600;
-              color: #3b82f6;
+              color: #4f46e5;
               margin: 15px 0;
-              padding: 6px 12px;
-              background-color: #eff6ff;
-              border-radius: 20px;
+              padding: 8px 16px;
+              background-color: #eef2ff;
+              border-radius: 30px;
             }
             
-            .summary-banner {
-              background: linear-gradient(135deg, #3b82f6, #2563eb);
-              color: white;
-              padding: 20px;
-              border-radius: 12px;
-              margin-bottom: 40px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            .summary-section {
               display: flex;
               justify-content: space-between;
-              align-items: center;
+              margin-bottom: 40px;
+            }
+            
+            .summary-card {
+              flex: 1;
+              background: linear-gradient(135deg, #4f46e5, #6366f1);
+              color: white;
+              padding: 25px;
+              border-radius: 16px;
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+              max-width: 300px;
             }
             
             .summary-title {
               font-size: 16px;
               font-weight: 500;
               opacity: 0.9;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             
             .summary-total {
-              font-size: 28px;
+              font-size: 36px;
               font-weight: 700;
-              margin-top: 5px;
+              margin-top: 10px;
+            }
+            
+            .chart-container {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 40px;
+              background-color: white;
+              border-radius: 16px;
+              padding: 25px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              border: 1px solid #f3f4f6;
+            }
+            
+            .pie-chart {
+              width: 200px;
+              height: 200px;
+              position: relative;
+              border-radius: 50%;
+              overflow: hidden;
+              background: conic-gradient(
+                ${Object.keys(customerTotals).map((customer, index, array) => {
+                  const percentage = (customerTotals[customer] / totalTime) * 100;
+                  const previousPercentages = array.slice(0, index).reduce((acc, curr) => {
+                    return acc + (customerTotals[curr] / totalTime) * 100;
+                  }, 0);
+                  return `${pieChartColors[customer]} ${previousPercentages}% ${previousPercentages + percentage}%`;
+                }).join(', ')}
+              );
+              margin: 0 auto;
+            }
+            
+            .chart-legend {
+              flex: 1;
+              margin-left: 30px;
+            }
+            
+            .legend-title {
+              font-size: 18px;
+              font-weight: 600;
+              margin-bottom: 15px;
+              color: #111827;
+            }
+            
+            .legend-items {
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+            }
+            
+            .legend-item {
+              display: flex;
+              align-items: center;
+            }
+            
+            .legend-color {
+              width: 16px;
+              height: 16px;
+              border-radius: 4px;
+              margin-right: 10px;
+            }
+            
+            .legend-label {
+              font-size: 14px;
+              color: #4b5563;
+            }
+            
+            .legend-value {
+              margin-left: auto;
+              font-weight: 600;
+              color: #111827;
             }
             
             .customer-section {
               margin-bottom: 40px;
-              background-color: #fafafa;
-              border-radius: 12px;
-              padding: 25px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-              border: 1px solid #f0f0f0;
+              background-color: white;
+              border-radius: 16px;
+              padding: 30px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              border: 1px solid #f3f4f6;
             }
             
             .customer-header {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              margin-bottom: 20px;
+              margin-bottom: 25px;
               padding-bottom: 15px;
-              border-bottom: 1px solid #e0e0e0;
+              border-bottom: 2px solid #f3f4f6;
             }
             
             .customer-name {
-              font-size: 22px;
-              font-weight: 600;
-              color: #1a1a1a;
+              font-size: 24px;
+              font-weight: 700;
+              color: #111827;
             }
             
             .customer-total {
               font-size: 18px;
               font-weight: 600;
-              color: #3b82f6;
-              background-color: #eff6ff;
-              padding: 6px 12px;
-              border-radius: 8px;
+              color: #4f46e5;
+              background-color: #eef2ff;
+              padding: 8px 16px;
+              border-radius: 12px;
             }
             
             .description-section {
               margin-bottom: 25px;
-              background-color: #fff;
-              border-radius: 10px;
+              background-color: #f9fafb;
+              border-radius: 12px;
               padding: 20px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-              border: 1px solid #f5f5f5;
+              border: 1px solid #f3f4f6;
             }
             
             .description-header {
@@ -358,22 +456,22 @@ export default function ExportScreen({ navigation }) {
               align-items: center;
               margin-bottom: 15px;
               padding-bottom: 12px;
-              border-bottom: 1px solid #f0f0f0;
+              border-bottom: 1px solid #e5e7eb;
             }
             
             .description-title {
               font-size: 18px;
               font-weight: 600;
-              color: #333;
+              color: #374151;
             }
             
             .description-total {
               font-size: 16px;
               font-weight: 600;
-              color: #10b981;
+              color: #059669;
               background-color: #ecfdf5;
-              padding: 4px 10px;
-              border-radius: 6px;
+              padding: 6px 12px;
+              border-radius: 8px;
             }
             
             table {
@@ -385,7 +483,7 @@ export default function ExportScreen({ navigation }) {
             }
             
             th {
-              background-color: #f9fafb;
+              background-color: #f3f4f6;
               text-align: left;
               padding: 12px 15px;
               font-weight: 600;
@@ -428,47 +526,48 @@ export default function ExportScreen({ navigation }) {
             
             .time-cell {
               font-weight: 500;
-              color: #3b82f6;
+              color: #4f46e5;
             }
             
             .type-cell {
               display: inline-block;
-              padding: 2px 8px;
-              border-radius: 4px;
+              padding: 4px 10px;
+              border-radius: 20px;
               font-size: 12px;
               font-weight: 500;
             }
             
             .type-manual {
-              background-color: #eff6ff;
-              color: #3b82f6;
+              background-color: #eef2ff;
+              color: #4f46e5;
             }
             
-            .type-timer {
+            .type-automatic {
               background-color: #f0fdf4;
-              color: #10b981;
+              color: #059669;
             }
             
-            .summary-section {
+            .total-summary {
               margin-top: 50px;
               background-color: #f0fdf4;
-              border-radius: 12px;
-              padding: 25px;
+              border-radius: 16px;
+              padding: 30px;
               text-align: center;
               border: 1px solid #d1fae5;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             }
             
-            .summary-title {
-              font-size: 18px;
+            .total-summary-title {
+              font-size: 20px;
               font-weight: 600;
-              color: #047857;
-              margin-bottom: 10px;
+              color: #059669;
+              margin-bottom: 15px;
             }
             
-            .summary-total {
-              font-size: 32px;
+            .total-summary-value {
+              font-size: 36px;
               font-weight: 700;
-              color: #047857;
+              color: #059669;
             }
             
             .footer {
@@ -507,7 +606,7 @@ export default function ExportScreen({ navigation }) {
         <body>
           <div class="container">
             <div class="header">
-              <div class="header-content">
+              <div class="header-top">
                 <div class="header-left">
                   <div class="logo">Time Account App</div>
                   <div class="date-range">${dateRangeText}</div>
@@ -519,10 +618,29 @@ export default function ExportScreen({ navigation }) {
               <h1 class="report-title">Time Tracking Report</h1>
             </div>
             
-            <div class="summary-banner">
-              <div>
-                <div class="summary-title">TOTAL TIME</div>
+            <div class="summary-section">
+              <div class="summary-card">
+                <div class="summary-title">Total Hours</div>
                 <div class="summary-total">${formattedTotalTime}</div>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <div class="pie-chart"></div>
+              <div class="chart-legend">
+                <h3 class="legend-title">Time Distribution by Customer</h3>
+                <div class="legend-items">
+                  ${Object.keys(customerTotals).map(customer => {
+                    const percentage = ((customerTotals[customer] / totalTime) * 100).toFixed(1);
+                    return `
+                      <div class="legend-item">
+                        <div class="legend-color" style="background-color: ${pieChartColors[customer]}"></div>
+                        <div class="legend-label">${customer}</div>
+                        <div class="legend-value">${formatTime(customerTotals[customer])} (${percentage}%)</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
               </div>
             </div>
     `;
@@ -531,11 +649,15 @@ export default function ExportScreen({ navigation }) {
     Object.keys(entriesByCustomerAndDescription).forEach((customer, customerIndex) => {
       const customerEntries = entriesByCustomer[customer];
       const customerTotal = customerEntries.reduce((total, entry) => total + entry.duration, 0);
+      const customerColor = pieChartColors[customer];
       
       html += `
         <div class="customer-section">
           <div class="customer-header">
-            <div class="customer-name">${customer}</div>
+            <div class="customer-name">
+              <span style="display: inline-block; width: 12px; height: 12px; background-color: ${customerColor}; margin-right: 8px; border-radius: 2px;"></span>
+              ${customer}
+            </div>
             <div class="customer-total">Total: ${formatTime(customerTotal)}</div>
           </div>
       `;
@@ -544,12 +666,13 @@ export default function ExportScreen({ navigation }) {
       Object.keys(entriesByCustomerAndDescription[customer]).forEach((description, descIndex) => {
         const descriptionEntries = entriesByCustomerAndDescription[customer][description];
         const descriptionTotal = descriptionEntries.reduce((total, entry) => total + entry.duration, 0);
+        const percentOfCustomer = ((descriptionTotal / customerTotal) * 100).toFixed(1);
         
         html += `
           <div class="description-section">
             <div class="description-header">
               <div class="description-title">${description}</div>
-              <div class="description-total">Total: ${formatTime(descriptionTotal)}</div>
+              <div class="description-total">Total: ${formatTime(descriptionTotal)} (${percentOfCustomer}%)</div>
             </div>
             
             <table>
@@ -564,12 +687,17 @@ export default function ExportScreen({ navigation }) {
               <tbody>
         `;
         
-        descriptionEntries.forEach(entry => {
+        // Sort entries by date (newest first)
+        const sortedEntries = [...descriptionEntries].sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        sortedEntries.forEach(entry => {
           const entryDate = new Date(entry.timestamp);
           const formattedDate = entryDate.toLocaleDateString();
           const formattedTime = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const entryType = entry.type === 'manual' ? 'Manual Entry' : 'Timer';
-          const typeClass = entry.type === 'manual' ? 'type-manual' : 'type-timer';
+          const typeClass = entry.type === 'manual' ? 'type-manual' : 'type-automatic';
           
           html += `
             <tr>
@@ -595,9 +723,9 @@ export default function ExportScreen({ navigation }) {
     });
 
     html += `
-            <div class="summary-section">
-              <div class="summary-title">Total Time Tracked</div>
-              <div class="summary-total">${formattedTotalTime}</div>
+            <div class="total-summary">
+              <div class="total-summary-title">Total Time Tracked</div>
+              <div class="total-summary-value">${formattedTotalTime}</div>
             </div>
             
             <div class="footer">
@@ -614,7 +742,17 @@ export default function ExportScreen({ navigation }) {
 
   const exportToPDF = async () => {
     try {
+      // Check if any entries are selected
+      if (Object.keys(selectedEntries).filter(id => selectedEntries[id]).length === 0) {
+        Alert.alert('No Entries Selected', 'Please select at least one time entry to export.');
+        return;
+      }
+      
       const html = generateHTML();
+      
+      // Show loading indicator
+      Alert.alert('Generating PDF', 'Please wait while your PDF is being generated...');
+      
       const { uri } = await Print.printToFileAsync({ 
         html,
         base64: false,
@@ -629,10 +767,10 @@ export default function ExportScreen({ navigation }) {
           UTI: 'com.adobe.pdf'
         });
       } else {
-        alert('Sharing is not available on your platform');
+        Alert.alert('Sharing Not Available', 'Sharing is not available on your platform');
       }
     } catch (error) {
-      alert('An error occurred: ' + error.message);
+      Alert.alert('Export Error', `An error occurred: ${error.message}`);
     }
   };
 
