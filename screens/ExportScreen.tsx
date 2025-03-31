@@ -178,17 +178,38 @@ export default function ExportScreen({ navigation }) {
         dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
       }
       
-      // Show platform-specific message
+      // Show platform-specific message and handle PDF generation
       if (Platform.OS === 'web') {
-        Alert.alert('Generating PDF', 
-          'Your PDF will open in a new window. If you see a print dialog, select "Save as PDF" option.',
-          [{ text: 'OK', onPress: async () => {
-            // Use the PDFGenerator to generate and share the PDF
-            await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
-          }}]
+        // For Windows/Web, show a message first then generate PDF
+        Alert.alert(
+          'Generating PDF', 
+          'Your PDF will open in a new window. When the print dialog appears, select "Save as PDF" option.',
+          [
+            { 
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            { 
+              text: 'Generate PDF', 
+              onPress: () => {
+                // Use setTimeout to ensure the alert is dismissed before PDF generation starts
+                setTimeout(async () => {
+                  try {
+                    console.log("Starting PDF generation process");
+                    await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
+                  } catch (pdfError) {
+                    console.error("PDF generation error:", pdfError);
+                    Alert.alert('PDF Generation Failed', 
+                      'There was an error generating your PDF. Please try again or check if pop-ups are blocked.'
+                    );
+                  }
+                }, 500);
+              }
+            }
+          ]
         );
       } else {
-        // Use the PDFGenerator to generate and share the PDF directly on mobile
+        // For mobile platforms, generate PDF directly
         await generateAndSharePDF(selectedTimeEntries, dateRangeText, formatTime);
       }
       

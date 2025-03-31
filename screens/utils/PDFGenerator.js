@@ -12,13 +12,18 @@ import * as WebBrowser from 'expo-web-browser';
  */
 export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, formatTime) => {
   try {
+    console.log("generateAndSharePDF called with", selectedTimeEntries.length, "entries");
+    
     if (selectedTimeEntries.length === 0) {
       Alert.alert('No Entries Selected', 'Please select at least one time entry to export.');
       return;
     }
     
     // Show loading indicator with count of entries
-    Alert.alert('Generating PDF', `Creating report with ${selectedTimeEntries.length} time entries. Please wait...`);
+    if (Platform.OS !== 'web') {
+      // Only show this alert on mobile platforms
+      Alert.alert('Generating PDF', `Creating report with ${selectedTimeEntries.length} time entries. Please wait...`);
+    }
     
     // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
@@ -636,104 +641,180 @@ const generateReportHTML = (selectedTimeEntries, dateRangeText, formatTime) => {
  */
 const handleWebPdfGeneration = async (html) => {
   try {
-    // Add PDF-specific styles to the HTML
-    const enhancedHtml = html.replace('</head>', `
-      <style>
-        @media print {
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          @page {
-            size: letter portrait;
-            margin: 0.5in;
-          }
-        }
-        
-        /* Add a print button for better UX */
-        .print-button {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          padding: 10px 20px;
-          background-color: #4CAF50;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 16px;
-          z-index: 9999;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .print-button:hover {
-          background-color: #45a049;
-        }
-        
-        @media print {
-          .print-button {
-            display: none;
-          }
-        }
-      </style>
-    </head>`);
+    console.log("Starting web PDF generation");
     
-    // Add a print button to the body
-    const htmlWithButton = enhancedHtml.replace('<body>', `
-      <body>
-        <button class="print-button" onclick="window.print(); return false;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 8H5C3.34 8 2 9.34 2 11V17H6V21H18V17H22V11C22 9.34 20.66 8 19 8Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M6 8V3H18V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M6 17H18V21H6V17Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Save as PDF
-        </button>
-    `);
+    // Create a direct HTML document with print script
+    const printableHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Time Tracking Report</title>
+          <style>
+            @media print {
+              body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              @page {
+                size: letter portrait;
+                margin: 0.5in;
+              }
+            }
+            
+            .print-controls {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #f0f0f0;
+              border: 1px solid #ccc;
+              border-radius: 8px;
+              padding: 15px;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+              z-index: 9999;
+              font-family: Arial, sans-serif;
+            }
+            
+            .print-button {
+              background-color: #4CAF50;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              padding: 10px 20px;
+              font-size: 16px;
+              cursor: pointer;
+              display: block;
+              width: 100%;
+              margin-bottom: 10px;
+              font-weight: bold;
+            }
+            
+            .print-button:hover {
+              background-color: #45a049;
+            }
+            
+            .instructions {
+              font-size: 12px;
+              color: #555;
+              margin-top: 10px;
+            }
+            
+            @media print {
+              .print-controls {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-controls">
+            <button class="print-button" onclick="window.print()">Print / Save as PDF</button>
+            <div class="instructions">
+              <p>When the print dialog opens:</p>
+              <p>1. Select "Save as PDF" as the destination</p>
+              <p>2. Click "Save" to download the PDF</p>
+            </div>
+          </div>
+          
+          ${html.replace(/<!DOCTYPE html>|<html>|<\/html>|<head>.*?<\/head>|<body>|<\/body>/gs, '')}
+          
+          <script>
+            // Auto-print after a short delay
+            setTimeout(() => {
+              console.log("Auto-triggering print dialog");
+              window.print();
+            }, 1000);
+          </script>
+        </body>
+      </html>
+    `;
     
     // Create a blob from the HTML content
-    const blob = new Blob([htmlWithButton], { type: 'text/html' });
+    const blob = new Blob([printableHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Open in a new window with specific features
-    const newWindow = window.open(url, '_blank', 'width=1000,height=800,menubar=yes,toolbar=yes');
+    console.log("Opening new window with PDF content");
     
-    // If popup was blocked, fallback to iframe method
-    if (!newWindow) {
-      console.log('Popup blocked, using iframe method');
+    // Try to open in a new window first (most reliable method)
+    try {
+      const newWindow = window.open(url, '_blank');
       
-      // Create a hidden iframe to handle the PDF generation
+      if (!newWindow) {
+        throw new Error("Popup blocked");
+      }
+      
+      // Clean up the URL after the window is loaded
+      newWindow.onload = () => {
+        console.log("New window loaded");
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 60000); // Clean up after 1 minute
+      };
+      
+      return;
+    } catch (windowError) {
+      console.error("Failed to open new window:", windowError);
+      // Continue to fallback methods
+    }
+    
+    // Fallback 1: Try using an iframe
+    try {
+      console.log("Trying iframe method");
       const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      
       document.body.appendChild(iframe);
       
       iframe.onload = () => {
-        try {
-          // Trigger print after a short delay to ensure styles are applied
-          setTimeout(() => {
+        console.log("Iframe loaded");
+        setTimeout(() => {
+          try {
+            console.log("Triggering print from iframe");
             iframe.contentWindow.print();
-            // Clean up after printing dialog is closed
+            
+            // Clean up after a delay
             setTimeout(() => {
               document.body.removeChild(iframe);
               URL.revokeObjectURL(url);
-            }, 1000);
-          }, 500);
-        } catch (error) {
-          console.error('Error in iframe print handling:', error);
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(url);
-          
-          // Final fallback - just open in a new tab
-          window.open(url, '_blank');
-        }
+            }, 5000);
+          } catch (printError) {
+            console.error("Error printing from iframe:", printError);
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+            
+            // Final fallback - just open in a new tab
+            window.open(url, '_blank');
+          }
+        }, 1000);
       };
       
       // Set the iframe source to the blob URL
       iframe.src = url;
+      return;
+    } catch (iframeError) {
+      console.error("Iframe method failed:", iframeError);
+    }
+    
+    // Final fallback - try direct document.write approach
+    console.log("Trying document.write method");
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printableHtml);
+      printWindow.document.close();
+    } else {
+      // If all else fails, alert the user
+      console.error("All PDF generation methods failed");
+      Alert.alert(
+        'PDF Generation Failed',
+        'Please disable popup blocking for this site and try again.'
+      );
     }
   } catch (error) {
     console.error('Web PDF generation error:', error);
