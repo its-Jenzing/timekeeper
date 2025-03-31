@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Platform, Keyboard } from 'react-native';
+import { Button, Card, Text, TextInput, FAB, List, Divider, useTheme, HelperText } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -74,9 +74,84 @@ export default function CustomerScreen({ navigation }) {
     saveCustomersToStorage();
   }, [customers]);
 
+  // Format phone number as (555)123-4567
+  const formatPhoneNumber = (phoneNumber) => {
+    // Remove all non-numeric characters
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // Format the phone number
+    if (cleaned.length === 0) {
+      return '';
+    } else if (cleaned.length <= 3) {
+      return `(${cleaned}`;
+    } else if (cleaned.length <= 6) {
+      return `(${cleaned.slice(0, 3)})${cleaned.slice(3)}`;
+    } else {
+      return `(${cleaned.slice(0, 3)})${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+    }
+  };
+
+  // Validate email format
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return email === '' || emailRegex.test(email);
+  };
+
+  // Handle phone number input
+  const handlePhoneChange = (text) => {
+    const formattedNumber = formatPhoneNumber(text);
+    setPhone(formattedNumber);
+    setPhoneError('');
+  };
+
+  // Handle billing phone number input
+  const handleBillingPhoneChange = (text) => {
+    const formattedNumber = formatPhoneNumber(text);
+    setBillingPhone(formattedNumber);
+    setBillingPhoneError('');
+  };
+
+  // Handle email input
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    if (!validateEmail(text) && text !== '') {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  // Handle billing email input
+  const handleBillingEmailChange = (text) => {
+    setBillingEmail(text);
+    if (!validateEmail(text) && text !== '') {
+      setBillingEmailError('Please enter a valid email address');
+    } else {
+      setBillingEmailError('');
+    }
+  };
+
   const saveCustomer = () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Customer name is required');
+      return;
+    }
+
+    // Validate email and phone before saving
+    let hasError = false;
+    
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      hasError = true;
+    }
+    
+    if (!validateEmail(billingEmail)) {
+      setBillingEmailError('Please enter a valid email address');
+      hasError = true;
+    }
+    
+    if (hasError) {
+      Alert.alert('Error', 'Please fix the errors before saving');
       return;
     }
 
@@ -175,21 +250,26 @@ export default function CustomerScreen({ navigation }) {
             <TextInput
               label="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
               keyboardType="email-address"
               style={styles.input}
               mode="outlined"
               left={<TextInput.Icon icon="email" />}
+              error={!!emailError}
             />
+            {!!emailError && <HelperText type="error">{emailError}</HelperText>}
+            
             <TextInput
               label="Phone"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
               style={styles.input}
               mode="outlined"
               left={<TextInput.Icon icon="phone" />}
+              error={!!phoneError}
             />
+            {!!phoneError && <HelperText type="error">{phoneError}</HelperText>}
             
             <View style={styles.sectionTitleContainer}>
               <Text variant="titleMedium" style={styles.sectionTitle}>Billing Information</Text>
@@ -207,21 +287,26 @@ export default function CustomerScreen({ navigation }) {
             <TextInput
               label="Billing Email"
               value={billingEmail}
-              onChangeText={setBillingEmail}
+              onChangeText={handleBillingEmailChange}
               keyboardType="email-address"
               style={styles.input}
               mode="outlined"
               left={<TextInput.Icon icon="email-outline" />}
+              error={!!billingEmailError}
             />
+            {!!billingEmailError && <HelperText type="error">{billingEmailError}</HelperText>}
+            
             <TextInput
               label="Billing Phone"
               value={billingPhone}
-              onChangeText={setBillingPhone}
+              onChangeText={handleBillingPhoneChange}
               keyboardType="phone-pad"
               style={styles.input}
               mode="outlined"
               left={<TextInput.Icon icon="phone-outline" />}
+              error={!!billingPhoneError}
             />
+            {!!billingPhoneError && <HelperText type="error">{billingPhoneError}</HelperText>}
             
             <View style={styles.buttonGroup}>
               <Button 

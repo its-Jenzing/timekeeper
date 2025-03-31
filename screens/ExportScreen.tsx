@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Button, Card, Text, Checkbox, Divider, List, useTheme, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
+import { Button, Card, Text, Checkbox, Divider, List, useTheme, Surface, Chip, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -39,6 +39,7 @@ export default function ExportScreen({ navigation }) {
   const [selectedEntries, setSelectedEntries] = useState({});
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [dateFilter, setDateFilter] = useState('all'); // 'all', 'week', 'month'
 
   // Load customers from AsyncStorage
   useEffect(() => {
@@ -64,6 +65,29 @@ export default function ExportScreen({ navigation }) {
 
   // Get unique customer names from time entries
   const customerNames = [...new Set(timeEntries.map(entry => entry.customer))];
+  
+  // Filter entries by date range
+  const getFilteredEntries = () => {
+    if (dateFilter === 'all') {
+      return timeEntries;
+    }
+    
+    const now = new Date();
+    const pastDate = new Date();
+    
+    if (dateFilter === 'week') {
+      pastDate.setDate(now.getDate() - 7); // Past week
+    } else if (dateFilter === 'month') {
+      pastDate.setMonth(now.getMonth() - 1); // Past month
+    }
+    
+    return timeEntries.filter(entry => {
+      const entryDate = new Date(entry.timestamp);
+      return entryDate >= pastDate && entryDate <= now;
+    });
+  };
+  
+  const filteredTimeEntries = getFilteredEntries();
 
   const toggleEntrySelection = (id) => {
     setSelectedEntries({
@@ -151,61 +175,282 @@ export default function ExportScreen({ navigation }) {
       entriesByCustomer[entry.customer].push(entry);
     });
 
+    // Group entries by description within each customer
+    const entriesByCustomerAndDescription = {};
+    Object.keys(entriesByCustomer).forEach(customer => {
+      entriesByCustomerAndDescription[customer] = {};
+      
+      entriesByCustomer[customer].forEach(entry => {
+        if (!entriesByCustomerAndDescription[customer][entry.description]) {
+          entriesByCustomerAndDescription[customer][entry.description] = [];
+        }
+        entriesByCustomerAndDescription[customer][entry.description].push(entry);
+      });
+    });
+
+    // Get date range for report title
+    let dateRangeText = "All Time";
+    if (dateFilter === 'week') {
+      const pastWeek = new Date();
+      pastWeek.setDate(pastWeek.getDate() - 7);
+      dateRangeText = `Past Week (${pastWeek.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
+    } else if (dateFilter === 'month') {
+      const pastMonth = new Date();
+      pastMonth.setMonth(pastMonth.getMonth() - 1);
+      dateRangeText = `Past Month (${pastMonth.toLocaleDateString()} - ${new Date().toLocaleDateString()})`;
+    }
+
     let html = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="UTF-8">
+          <title>Time Tracking Report</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #2c3e50; }
-            h2 { color: #3498db; margin-top: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #f2f2f2; text-align: left; padding: 12px; }
-            td { padding: 12px; border-bottom: 1px solid #ddd; }
-            .total { font-weight: bold; margin-top: 20px; }
-            .footer { margin-top: 50px; color: #7f8c8d; font-size: 12px; }
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+            
+            body { 
+              font-family: 'Roboto', sans-serif; 
+              margin: 0;
+              padding: 0;
+              color: #333;
+              background-color: #fff;
+            }
+            
+            .container {
+              max-width: 1000px;
+              margin: 0 auto;
+              padding: 40px 20px;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 40px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #2196F3;
+            }
+            
+            .logo {
+              font-size: 28px;
+              font-weight: 700;
+              color: #2196F3;
+              margin-bottom: 10px;
+            }
+            
+            h1 {
+              font-size: 24px;
+              font-weight: 500;
+              color: #333;
+              margin: 10px 0;
+            }
+            
+            .date-generated {
+              font-size: 14px;
+              color: #666;
+              margin-top: 10px;
+            }
+            
+            .date-range {
+              font-size: 16px;
+              font-weight: 500;
+              color: #2196F3;
+              margin: 10px 0 30px 0;
+            }
+            
+            .customer-section {
+              margin-bottom: 40px;
+              background-color: #f9f9f9;
+              border-radius: 8px;
+              padding: 20px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .customer-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .customer-name {
+              font-size: 20px;
+              font-weight: 500;
+              color: #333;
+            }
+            
+            .customer-total {
+              font-size: 18px;
+              font-weight: 500;
+              color: #2196F3;
+            }
+            
+            .description-section {
+              margin-bottom: 20px;
+              background-color: #fff;
+              border-radius: 6px;
+              padding: 15px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            }
+            
+            .description-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+              padding-bottom: 8px;
+              border-bottom: 1px solid #eee;
+            }
+            
+            .description-title {
+              font-size: 16px;
+              font-weight: 500;
+              color: #555;
+            }
+            
+            .description-total {
+              font-size: 16px;
+              font-weight: 500;
+              color: #4CAF50;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+              font-size: 14px;
+            }
+            
+            th {
+              background-color: #f5f5f5;
+              text-align: left;
+              padding: 10px;
+              font-weight: 500;
+              color: #555;
+              border-bottom: 2px solid #e0e0e0;
+            }
+            
+            td {
+              padding: 10px;
+              border-bottom: 1px solid #eee;
+              color: #666;
+            }
+            
+            tr:last-child td {
+              border-bottom: none;
+            }
+            
+            .summary-section {
+              margin-top: 40px;
+              background-color: #e8f5e9;
+              border-radius: 8px;
+              padding: 20px;
+              text-align: center;
+            }
+            
+            .summary-title {
+              font-size: 18px;
+              font-weight: 500;
+              color: #2E7D32;
+              margin-bottom: 10px;
+            }
+            
+            .summary-total {
+              font-size: 24px;
+              font-weight: 700;
+              color: #2E7D32;
+            }
+            
+            .footer {
+              margin-top: 60px;
+              text-align: center;
+              color: #9e9e9e;
+              font-size: 12px;
+              padding-top: 20px;
+              border-top: 1px solid #eee;
+            }
           </style>
         </head>
         <body>
-          <h1>Time Tracking Report</h1>
-          <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <div class="container">
+            <div class="header">
+              <div class="logo">Time Account App</div>
+              <h1>Time Tracking Report</h1>
+              <div class="date-generated">Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+              <div class="date-range">${dateRangeText}</div>
+            </div>
     `;
 
     // Add customer sections
-    Object.keys(entriesByCustomer).forEach(customer => {
-      const entries = entriesByCustomer[customer];
-      const customerTotal = entries.reduce((total, entry) => total + entry.duration, 0);
+    Object.keys(entriesByCustomerAndDescription).forEach(customer => {
+      const customerEntries = entriesByCustomer[customer];
+      const customerTotal = customerEntries.reduce((total, entry) => total + entry.duration, 0);
       
       html += `
-        <h2>Customer: ${customer}</h2>
-        <table>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Duration</th>
-          </tr>
+        <div class="customer-section">
+          <div class="customer-header">
+            <div class="customer-name">${customer}</div>
+            <div class="customer-total">Total: ${formatTime(customerTotal)}</div>
+          </div>
       `;
       
-      entries.forEach(entry => {
+      // Add description sections within each customer
+      Object.keys(entriesByCustomerAndDescription[customer]).forEach(description => {
+        const descriptionEntries = entriesByCustomerAndDescription[customer][description];
+        const descriptionTotal = descriptionEntries.reduce((total, entry) => total + entry.duration, 0);
+        
         html += `
-          <tr>
-            <td>${new Date(entry.timestamp).toLocaleDateString()}</td>
-            <td>${entry.description}</td>
-            <td>${formatTime(entry.duration)}</td>
-          </tr>
+          <div class="description-section">
+            <div class="description-header">
+              <div class="description-title">${description}</div>
+              <div class="description-total">Total: ${formatTime(descriptionTotal)}</div>
+            </div>
+            
+            <table>
+              <tr>
+                <th>Date</th>
+                <th>Start Time</th>
+                <th>Duration</th>
+                <th>Type</th>
+              </tr>
+        `;
+        
+        descriptionEntries.forEach(entry => {
+          const entryDate = new Date(entry.timestamp);
+          const formattedDate = entryDate.toLocaleDateString();
+          const formattedTime = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+          html += `
+            <tr>
+              <td>${formattedDate}</td>
+              <td>${formattedTime}</td>
+              <td>${formatTime(entry.duration)}</td>
+              <td>${entry.type === 'manual' ? 'Manual Entry' : 'Timer'}</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </table>
+          </div>
         `;
       });
       
       html += `
-        </table>
-        <p class="total">Customer Total: ${formatTime(customerTotal)}</p>
+        </div>
       `;
     });
 
     html += `
-          <h2>Summary</h2>
-          <p class="total">Total Time: ${formattedTotalTime}</p>
-          <div class="footer">
-            <p>Generated by Time Account App</p>
+            <div class="summary-section">
+              <div class="summary-title">Total Time</div>
+              <div class="summary-total">${formattedTotalTime}</div>
+            </div>
+            
+            <div class="footer">
+              <p>This report was generated by Time Account App. All times are displayed in hours and minutes.</p>
+            </div>
           </div>
         </body>
       </html>
@@ -240,6 +485,20 @@ export default function ExportScreen({ navigation }) {
                 Select time entries to include in your export
               </Text>
             </Surface>
+            
+            <View style={styles.dateFilterContainer}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>Time Period:</Text>
+              <SegmentedButtons
+                value={dateFilter}
+                onValueChange={setDateFilter}
+                buttons={[
+                  { value: 'all', label: 'All Time' },
+                  { value: 'week', label: 'Past Week' },
+                  { value: 'month', label: 'Past Month' },
+                ]}
+                style={styles.segmentedButtons}
+              />
+            </View>
             
             <View style={styles.filterContainer}>
               <Text variant="titleMedium" style={styles.sectionTitle}>Filter by Customer:</Text>
@@ -280,7 +539,7 @@ export default function ExportScreen({ navigation }) {
             <Divider style={styles.divider} />
             
             <Surface style={styles.entriesSurface} elevation={1}>
-              {timeEntries
+              {filteredTimeEntries
                 .filter(entry => !selectedCustomer || entry.customer === selectedCustomer)
                 .map((entry, index, filteredArray) => (
                   <View key={entry.id} style={styles.entryItem}>
@@ -306,10 +565,10 @@ export default function ExportScreen({ navigation }) {
                   </View>
                 ))}
                 
-                {timeEntries
+                {filteredTimeEntries
                   .filter(entry => !selectedCustomer || entry.customer === selectedCustomer)
                   .length === 0 && (
-                    <Text style={styles.emptyMessage}>No entries match the selected filter</Text>
+                    <Text style={styles.emptyMessage}>No entries match the selected filters</Text>
                   )
                 }
             </Surface>
@@ -368,6 +627,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     marginBottom: 8,
+  },
+  dateFilterContainer: {
+    marginBottom: 16,
+  },
+  segmentedButtons: {
+    marginTop: 8,
   },
   filterContainer: {
     marginBottom: 16,
