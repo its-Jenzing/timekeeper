@@ -205,16 +205,24 @@ export default function ExportScreen({ navigation }) {
       <html>
         <head>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Time Tracking Report</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
             
-            body { 
-              font-family: 'Roboto', sans-serif; 
+            * {
+              box-sizing: border-box;
               margin: 0;
               padding: 0;
-              color: #333;
+            }
+            
+            body { 
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+              line-height: 1.5;
+              color: #1a1a1a;
               background-color: #fff;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             
             .container {
@@ -224,45 +232,91 @@ export default function ExportScreen({ navigation }) {
             }
             
             .header {
-              text-align: center;
-              margin-bottom: 40px;
+              position: relative;
+              margin-bottom: 50px;
               padding-bottom: 20px;
-              border-bottom: 2px solid #2196F3;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .header-content {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            }
+            
+            .header-left {
+              flex: 1;
+            }
+            
+            .header-right {
+              text-align: right;
+              flex: 1;
             }
             
             .logo {
               font-size: 28px;
               font-weight: 700;
-              color: #2196F3;
+              color: #3b82f6;
               margin-bottom: 10px;
+              letter-spacing: -0.5px;
             }
             
-            h1 {
-              font-size: 24px;
-              font-weight: 500;
-              color: #333;
-              margin: 10px 0;
+            .report-title {
+              font-size: 32px;
+              font-weight: 700;
+              color: #1a1a1a;
+              margin: 20px 0 10px 0;
+              letter-spacing: -0.5px;
             }
             
             .date-generated {
               font-size: 14px;
               color: #666;
-              margin-top: 10px;
+              margin-top: 5px;
             }
             
             .date-range {
+              display: inline-block;
+              font-size: 14px;
+              font-weight: 600;
+              color: #3b82f6;
+              margin: 15px 0;
+              padding: 6px 12px;
+              background-color: #eff6ff;
+              border-radius: 20px;
+            }
+            
+            .summary-banner {
+              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              color: white;
+              padding: 20px;
+              border-radius: 12px;
+              margin-bottom: 40px;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            
+            .summary-title {
               font-size: 16px;
               font-weight: 500;
-              color: #2196F3;
-              margin: 10px 0 30px 0;
+              opacity: 0.9;
+            }
+            
+            .summary-total {
+              font-size: 28px;
+              font-weight: 700;
+              margin-top: 5px;
             }
             
             .customer-section {
               margin-bottom: 40px;
-              background-color: #f9f9f9;
-              border-radius: 8px;
-              padding: 20px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              background-color: #fafafa;
+              border-radius: 12px;
+              padding: 25px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+              border: 1px solid #f0f0f0;
             }
             
             .customer-header {
@@ -270,28 +324,32 @@ export default function ExportScreen({ navigation }) {
               justify-content: space-between;
               align-items: center;
               margin-bottom: 20px;
-              padding-bottom: 10px;
+              padding-bottom: 15px;
               border-bottom: 1px solid #e0e0e0;
             }
             
             .customer-name {
-              font-size: 20px;
-              font-weight: 500;
-              color: #333;
+              font-size: 22px;
+              font-weight: 600;
+              color: #1a1a1a;
             }
             
             .customer-total {
               font-size: 18px;
-              font-weight: 500;
-              color: #2196F3;
+              font-weight: 600;
+              color: #3b82f6;
+              background-color: #eff6ff;
+              padding: 6px 12px;
+              border-radius: 8px;
             }
             
             .description-section {
-              margin-bottom: 20px;
+              margin-bottom: 25px;
               background-color: #fff;
-              border-radius: 6px;
-              padding: 15px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+              border-radius: 10px;
+              padding: 20px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+              border: 1px solid #f5f5f5;
             }
             
             .description-header {
@@ -299,91 +357,178 @@ export default function ExportScreen({ navigation }) {
               justify-content: space-between;
               align-items: center;
               margin-bottom: 15px;
-              padding-bottom: 8px;
-              border-bottom: 1px solid #eee;
+              padding-bottom: 12px;
+              border-bottom: 1px solid #f0f0f0;
             }
             
             .description-title {
-              font-size: 16px;
-              font-weight: 500;
-              color: #555;
+              font-size: 18px;
+              font-weight: 600;
+              color: #333;
             }
             
             .description-total {
               font-size: 16px;
-              font-weight: 500;
-              color: #4CAF50;
+              font-weight: 600;
+              color: #10b981;
+              background-color: #ecfdf5;
+              padding: 4px 10px;
+              border-radius: 6px;
             }
             
             table {
               width: 100%;
-              border-collapse: collapse;
+              border-collapse: separate;
+              border-spacing: 0;
               margin-top: 10px;
               font-size: 14px;
             }
             
             th {
-              background-color: #f5f5f5;
+              background-color: #f9fafb;
               text-align: left;
-              padding: 10px;
-              font-weight: 500;
-              color: #555;
-              border-bottom: 2px solid #e0e0e0;
+              padding: 12px 15px;
+              font-weight: 600;
+              color: #4b5563;
+              border-bottom: 1px solid #e5e7eb;
+              border-top: 1px solid #e5e7eb;
+            }
+            
+            th:first-child {
+              border-left: 1px solid #e5e7eb;
+              border-top-left-radius: 8px;
+            }
+            
+            th:last-child {
+              border-right: 1px solid #e5e7eb;
+              border-top-right-radius: 8px;
             }
             
             td {
-              padding: 10px;
-              border-bottom: 1px solid #eee;
-              color: #666;
+              padding: 12px 15px;
+              border-bottom: 1px solid #e5e7eb;
+              color: #4b5563;
             }
             
-            tr:last-child td {
-              border-bottom: none;
+            td:first-child {
+              border-left: 1px solid #e5e7eb;
+            }
+            
+            td:last-child {
+              border-right: 1px solid #e5e7eb;
+            }
+            
+            tr:last-child td:first-child {
+              border-bottom-left-radius: 8px;
+            }
+            
+            tr:last-child td:last-child {
+              border-bottom-right-radius: 8px;
+            }
+            
+            .time-cell {
+              font-weight: 500;
+              color: #3b82f6;
+            }
+            
+            .type-cell {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              font-weight: 500;
+            }
+            
+            .type-manual {
+              background-color: #eff6ff;
+              color: #3b82f6;
+            }
+            
+            .type-timer {
+              background-color: #f0fdf4;
+              color: #10b981;
             }
             
             .summary-section {
-              margin-top: 40px;
-              background-color: #e8f5e9;
-              border-radius: 8px;
-              padding: 20px;
+              margin-top: 50px;
+              background-color: #f0fdf4;
+              border-radius: 12px;
+              padding: 25px;
               text-align: center;
+              border: 1px solid #d1fae5;
             }
             
             .summary-title {
               font-size: 18px;
-              font-weight: 500;
-              color: #2E7D32;
+              font-weight: 600;
+              color: #047857;
               margin-bottom: 10px;
             }
             
             .summary-total {
-              font-size: 24px;
+              font-size: 32px;
               font-weight: 700;
-              color: #2E7D32;
+              color: #047857;
             }
             
             .footer {
               margin-top: 60px;
               text-align: center;
-              color: #9e9e9e;
+              color: #6b7280;
               font-size: 12px;
               padding-top: 20px;
-              border-top: 1px solid #eee;
+              border-top: 1px solid #e5e7eb;
+            }
+            
+            .page-break {
+              page-break-after: always;
+            }
+            
+            @media print {
+              body {
+                font-size: 12pt;
+              }
+              
+              .container {
+                padding: 0;
+                max-width: 100%;
+              }
+              
+              .customer-section {
+                page-break-inside: avoid;
+              }
+              
+              .description-section {
+                page-break-inside: avoid;
+              }
             }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">Time Account App</div>
-              <h1>Time Tracking Report</h1>
-              <div class="date-generated">Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
-              <div class="date-range">${dateRangeText}</div>
+              <div class="header-content">
+                <div class="header-left">
+                  <div class="logo">Time Account App</div>
+                  <div class="date-range">${dateRangeText}</div>
+                </div>
+                <div class="header-right">
+                  <div class="date-generated">Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+                </div>
+              </div>
+              <h1 class="report-title">Time Tracking Report</h1>
+            </div>
+            
+            <div class="summary-banner">
+              <div>
+                <div class="summary-title">TOTAL TIME</div>
+                <div class="summary-total">${formattedTotalTime}</div>
+              </div>
             </div>
     `;
 
     // Add customer sections
-    Object.keys(entriesByCustomerAndDescription).forEach(customer => {
+    Object.keys(entriesByCustomerAndDescription).forEach((customer, customerIndex) => {
       const customerEntries = entriesByCustomer[customer];
       const customerTotal = customerEntries.reduce((total, entry) => total + entry.duration, 0);
       
@@ -396,7 +541,7 @@ export default function ExportScreen({ navigation }) {
       `;
       
       // Add description sections within each customer
-      Object.keys(entriesByCustomerAndDescription[customer]).forEach(description => {
+      Object.keys(entriesByCustomerAndDescription[customer]).forEach((description, descIndex) => {
         const descriptionEntries = entriesByCustomerAndDescription[customer][description];
         const descriptionTotal = descriptionEntries.reduce((total, entry) => total + entry.duration, 0);
         
@@ -408,30 +553,36 @@ export default function ExportScreen({ navigation }) {
             </div>
             
             <table>
-              <tr>
-                <th>Date</th>
-                <th>Start Time</th>
-                <th>Duration</th>
-                <th>Type</th>
-              </tr>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Start Time</th>
+                  <th>Duration</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
         `;
         
         descriptionEntries.forEach(entry => {
           const entryDate = new Date(entry.timestamp);
           const formattedDate = entryDate.toLocaleDateString();
           const formattedTime = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const entryType = entry.type === 'manual' ? 'Manual Entry' : 'Timer';
+          const typeClass = entry.type === 'manual' ? 'type-manual' : 'type-timer';
           
           html += `
             <tr>
               <td>${formattedDate}</td>
               <td>${formattedTime}</td>
-              <td>${formatTime(entry.duration)}</td>
-              <td>${entry.type === 'manual' ? 'Manual Entry' : 'Timer'}</td>
+              <td class="time-cell">${formatTime(entry.duration)}</td>
+              <td><span class="type-cell ${typeClass}">${entryType}</span></td>
             </tr>
           `;
         });
         
         html += `
+              </tbody>
             </table>
           </div>
         `;
@@ -439,17 +590,19 @@ export default function ExportScreen({ navigation }) {
       
       html += `
         </div>
+        ${customerIndex < Object.keys(entriesByCustomerAndDescription).length - 1 ? '<div class="page-break"></div>' : ''}
       `;
     });
 
     html += `
             <div class="summary-section">
-              <div class="summary-title">Total Time</div>
+              <div class="summary-title">Total Time Tracked</div>
               <div class="summary-total">${formattedTotalTime}</div>
             </div>
             
             <div class="footer">
               <p>This report was generated by Time Account App. All times are displayed in hours and minutes.</p>
+              <p>© ${new Date().getFullYear()} Time Account App</p>
             </div>
           </div>
         </body>
@@ -462,10 +615,19 @@ export default function ExportScreen({ navigation }) {
   const exportToPDF = async () => {
     try {
       const html = generateHTML();
-      const { uri } = await Print.printToFileAsync({ html });
+      const { uri } = await Print.printToFileAsync({ 
+        html,
+        base64: false,
+        width: 612, // Standard US Letter width in points (8.5 inches)
+        height: 792, // Standard US Letter height in points (11 inches)
+      });
       
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Time Tracking Report',
+          UTI: 'com.adobe.pdf'
+        });
       } else {
         alert('Sharing is not available on your platform');
       }
