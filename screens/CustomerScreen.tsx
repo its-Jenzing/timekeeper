@@ -38,10 +38,14 @@ export default function CustomerScreen({ navigation }) {
   ]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [billingContact, setBillingContact] = useState('');
   const [billingEmail, setBillingEmail] = useState('');
+  const [billingEmailError, setBillingEmailError] = useState('');
   const [billingPhone, setBillingPhone] = useState('');
+  const [billingPhoneError, setBillingPhoneError] = useState('');
   const [editingId, setEditingId] = useState(null);
 
   // Load customers from storage on initial render
