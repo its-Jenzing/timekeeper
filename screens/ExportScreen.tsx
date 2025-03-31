@@ -182,15 +182,15 @@ export default function ExportScreen({ navigation }) {
       if (Platform.OS === 'web') {
         // For Windows/Web, show a message first then generate PDF
         Alert.alert(
-          'Generating PDF', 
-          'Your PDF will open in a new window. When the print dialog appears, select "Save as PDF" option.',
+          'Download PDF Report', 
+          'Your PDF will be generated and downloaded directly to your computer.',
           [
             { 
               text: 'Cancel',
               style: 'cancel'
             },
             { 
-              text: 'Generate PDF', 
+              text: 'Download PDF', 
               onPress: () => {
                 // Use setTimeout to ensure the alert is dismissed before PDF generation starts
                 setTimeout(async () => {
@@ -200,7 +200,7 @@ export default function ExportScreen({ navigation }) {
                   } catch (pdfError) {
                     console.error("PDF generation error:", pdfError);
                     Alert.alert('PDF Generation Failed', 
-                      'There was an error generating your PDF. Please try again or check if pop-ups are blocked.'
+                      'There was an error generating your PDF. Please try again.'
                     );
                   }
                 }, 500);
@@ -333,7 +333,7 @@ export default function ExportScreen({ navigation }) {
               disabled={Object.keys(selectedEntries).length === 0}
               key="export-pdf-button"
             >
-              {Platform.OS === 'web' ? 'Generate PDF Report (Windows/Web)' : 'Generate PDF Report'}
+              {Platform.OS === 'web' ? 'Download PDF Report' : 'Generate PDF Report'}
             </Button>
           </Card.Content>
         </Card>

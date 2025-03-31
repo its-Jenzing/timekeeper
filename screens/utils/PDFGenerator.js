@@ -27,6 +27,12 @@ export const generateAndSharePDF = async (selectedTimeEntries, dateRangeText, fo
     
     // Generate HTML content for the report
     const html = generateReportHTML(selectedTimeEntries, dateRangeText, formatTime);
+  
+    // Add data attributes for fallback PDF generation
+    const entriesWithFormatted = selectedTimeEntries.map(entry => ({
+      ...entry,
+      formattedDuration: formatTime(entry.duration)
+    }));
     
     // Handle PDF generation differently based on platform
     if (Platform.OS === 'web') {
@@ -641,181 +647,117 @@ const generateReportHTML = (selectedTimeEntries, dateRangeText, formatTime) => {
  */
 const handleWebPdfGeneration = async (html) => {
   try {
-    console.log("Starting web PDF generation");
+    console.log("Starting web PDF generation with direct download approach");
     
-    // Create a direct HTML document with print script
-    const printableHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Time Tracking Report</title>
-          <style>
-            @media print {
-              body {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-              }
-              @page {
-                size: letter portrait;
-                margin: 0.5in;
-              }
-            }
-            
-            .print-controls {
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              background-color: #f0f0f0;
-              border: 1px solid #ccc;
-              border-radius: 8px;
-              padding: 15px;
-              box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-              z-index: 9999;
-              font-family: Arial, sans-serif;
-            }
-            
-            .print-button {
-              background-color: #4CAF50;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              padding: 10px 20px;
-              font-size: 16px;
-              cursor: pointer;
-              display: block;
-              width: 100%;
-              margin-bottom: 10px;
-              font-weight: bold;
-            }
-            
-            .print-button:hover {
-              background-color: #45a049;
-            }
-            
-            .instructions {
-              font-size: 12px;
-              color: #555;
-              margin-top: 10px;
-            }
-            
-            @media print {
-              .print-controls {
-                display: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-controls">
-            <button class="print-button" onclick="window.print()">Print / Save as PDF</button>
-            <div class="instructions">
-              <p>When the print dialog opens:</p>
-              <p>1. Select "Save as PDF" as the destination</p>
-              <p>2. Click "Save" to download the PDF</p>
-            </div>
-          </div>
-          
-          ${html.replace(/<!DOCTYPE html>|<html>|<\/html>|<head>.*?<\/head>|<body>|<\/body>/gs, '')}
-          
-          <script>
-            // Auto-print after a short delay
-            setTimeout(() => {
-              console.log("Auto-triggering print dialog");
-              window.print();
-            }, 1000);
-          </script>
-        </body>
-      </html>
-    `;
+    // Import jsPDF dynamically (only in web environment)
+    const jsPDFModule = await import('jspdf');
+    const { jsPDF } = jsPDFModule.default || jsPDFModule;
     
-    // Create a blob from the HTML content
-    const blob = new Blob([printableHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
+    // Import html2canvas dynamically
+    const html2canvasModule = await import('html2canvas');
+    const html2canvas = html2canvasModule.default || html2canvasModule;
     
-    console.log("Opening new window with PDF content");
+    console.log("Libraries loaded successfully");
     
-    // Try to open in a new window first (most reliable method)
+    // Create a temporary container to render the HTML
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '816px'; // 8.5 inches at 96 DPI
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    
+    // Create a new PDF document (Letter size: 8.5 x 11 inches)
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'in',
+      format: 'letter'
+    });
+    
+    console.log("Rendering HTML to canvas");
+    
     try {
-      const newWindow = window.open(url, '_blank');
+      // Render the HTML to a canvas
+      const canvas = await html2canvas(container, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+        allowTaint: true
+      });
       
-      if (!newWindow) {
-        throw new Error("Popup blocked");
-      }
+      console.log("Canvas rendering complete");
       
-      // Clean up the URL after the window is loaded
-      newWindow.onload = () => {
-        console.log("New window loaded");
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-        }, 60000); // Clean up after 1 minute
-      };
+      // Convert the canvas to an image
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       
-      return;
-    } catch (windowError) {
-      console.error("Failed to open new window:", windowError);
-      // Continue to fallback methods
-    }
-    
-    // Fallback 1: Try using an iframe
-    try {
-      console.log("Trying iframe method");
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
+      // Add the image to the PDF
+      pdf.addImage(imgData, 'JPEG', 0.5, 0.5, 7.5, 10, '', 'FAST');
       
-      document.body.appendChild(iframe);
+      // Generate timestamp for filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
       
-      iframe.onload = () => {
-        console.log("Iframe loaded");
-        setTimeout(() => {
-          try {
-            console.log("Triggering print from iframe");
-            iframe.contentWindow.print();
-            
-            // Clean up after a delay
-            setTimeout(() => {
-              document.body.removeChild(iframe);
-              URL.revokeObjectURL(url);
-            }, 5000);
-          } catch (printError) {
-            console.error("Error printing from iframe:", printError);
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-            
-            // Final fallback - just open in a new tab
-            window.open(url, '_blank');
-          }
-        }, 1000);
-      };
+      // Save the PDF
+      pdf.save(`time-report-${timestamp}.pdf`);
       
-      // Set the iframe source to the blob URL
-      iframe.src = url;
-      return;
-    } catch (iframeError) {
-      console.error("Iframe method failed:", iframeError);
-    }
-    
-    // Final fallback - try direct document.write approach
-    console.log("Trying document.write method");
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printableHtml);
-      printWindow.document.close();
-    } else {
-      // If all else fails, alert the user
-      console.error("All PDF generation methods failed");
+      console.log("PDF saved successfully");
+      
+      // Clean up
+      document.body.removeChild(container);
+      
+      // Show success message
       Alert.alert(
-        'PDF Generation Failed',
-        'Please disable popup blocking for this site and try again.'
+        'PDF Generated',
+        'Your PDF has been downloaded successfully.',
+        [{ text: 'OK' }]
+      );
+    } catch (renderError) {
+      console.error("Error rendering HTML:", renderError);
+      
+      // Fallback to simpler approach if rendering fails
+      document.body.removeChild(container);
+      
+      // Create a simple PDF with basic text
+      const pdf = new jsPDF();
+      pdf.setFontSize(22);
+      pdf.text('Time Tracking Report', 105, 20, { align: 'center' });
+      pdf.setFontSize(12);
+      
+      let y = 40;
+      const lineHeight = 7;
+      
+      // Add basic information about time entries
+      pdf.text('Time Entries Report', 20, y); y += lineHeight * 2;
+      
+      // Add each time entry as text
+      const timeEntries = JSON.parse(container.getAttribute('data-entries') || '[]');
+      timeEntries.forEach((entry, index) => {
+        pdf.text(`Entry ${index + 1}: ${entry.description || 'No description'}`, 20, y); y += lineHeight;
+        pdf.text(`Duration: ${entry.formattedDuration || 'Unknown'}`, 30, y); y += lineHeight;
+        pdf.text(`Customer: ${entry.customer || 'Unassigned'}`, 30, y); y += lineHeight;
+        pdf.text(`Date: ${new Date(entry.timestamp).toLocaleDateString()}`, 30, y); y += lineHeight * 1.5;
+      });
+      
+      // Generate timestamp for filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      
+      // Save the PDF
+      pdf.save(`time-report-simple-${timestamp}.pdf`);
+      
+      Alert.alert(
+        'Simple PDF Generated',
+        'A simplified PDF has been downloaded due to rendering issues with the full report.',
+        [{ text: 'OK' }]
       );
     }
+  } catch (error) {
+    console.error('Web PDF generation error:', error);
+    Alert.alert(
+      'PDF Generation Failed',
+      'There was an error generating your PDF. Please try again later.',
+      [{ text: 'OK' }]
+    );
+  }
   } catch (error) {
     console.error('Web PDF generation error:', error);
     Alert.alert('Export Error', 'Failed to generate PDF in browser. Please try again.');
