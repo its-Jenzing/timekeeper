@@ -188,4 +188,13 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\nHealth check: http://YOUR_SERVER_IP:${PORT}/health`);
   console.log(`Server info: http://YOUR_SERVER_IP:${PORT}/server-info`);
   console.log(`======================================\n`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\nERROR: Port ${PORT} is already in use!`);
+    console.error(`Another instance of the server may be running.`);
+    console.error(`Try stopping the existing service with: service timekeeper stop`);
+  } else {
+    console.error(`\nERROR: Failed to start server: ${err.message}`);
+  }
+  process.exit(1);
 });

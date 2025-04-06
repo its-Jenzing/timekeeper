@@ -58,10 +58,23 @@ timekeeper_precmd()
         chown "${timekeeper_user}:${timekeeper_group}" "${timekeeper_dir}/logs"
     fi
     
-    # Check if node is installed
-    if ! which node >/dev/null 2>&1; then
-        echo "Node.js is not installed. Please install it with: pkg install -y node"
-        return 1
+    # Check if node is installed - use full path to node
+    if [ ! -x "${timekeeper_node}" ]; then
+        echo "Node.js is not installed at ${timekeeper_node}. Please install it with: pkg install -y node"
+        # Try to find node in other locations
+        for nodepath in /usr/bin/node /usr/local/bin/node22 /usr/local/bin/node
+        do
+            if [ -x "${nodepath}" ]; then
+                echo "Found Node.js at ${nodepath}, using this instead"
+                timekeeper_node="${nodepath}"
+                break
+            fi
+        done
+        
+        # If we still don't have a valid node path, fail
+        if [ ! -x "${timekeeper_node}" ]; then
+            return 1
+        fi
     fi
     
     # Check if the application directory exists

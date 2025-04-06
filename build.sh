@@ -18,8 +18,24 @@ echo "Current directory: $APP_DIR"
 check_dependency() {
   if ! command -v "$1" > /dev/null 2>&1; then
     echo "$1 is not installed. Installing..."
-    pkg install -y "$2"
-    return $?
+    pkg install -y "$2" || pkg install -y "$1"
+    
+    # Verify installation was successful
+    if ! command -v "$1" > /dev/null 2>&1; then
+      # Try alternative package names
+      echo "Trying alternative package for $1..."
+      if [ "$1" = "node" ]; then
+        pkg install -y node22
+      elif [ "$1" = "npm" ]; then
+        pkg install -y npm-node22
+      fi
+      
+      # Final check
+      if ! command -v "$1" > /dev/null 2>&1; then
+        return 1
+      fi
+    fi
+    return 0
   else
     echo "$1 is already installed."
     return 0
@@ -27,8 +43,11 @@ check_dependency() {
 }
 
 echo "Checking dependencies..."
-check_dependency node nodejs || { echo "Failed to install Node.js"; exit 1; }
+check_dependency node node || { echo "Failed to install Node.js"; exit 1; }
 check_dependency npm npm || { echo "Failed to install npm"; exit 1; }
+
+# Make sure PATH includes /usr/local/bin where node is likely installed
+export PATH="/usr/local/bin:$PATH"
 
 # Install Node.js dependencies
 echo "Installing Node.js dependencies..."
@@ -116,11 +135,35 @@ if [ "$(id -u)" -eq 0 ]; then
       sysrc timekeeper_enable="YES"
       sysrc timekeeper_dir="$APP_DIR"
       
+      # Find node executable path
+      NODE_PATH=$(which node)
+      if [ -n "$NODE_PATH" ]; then
+        echo "Setting node path to $NODE_PATH in rc.conf..."
+        sysrc timekeeper_node="$NODE_PATH"
+      else
+        # Try to find node in common locations
+        for path in /usr/local/bin/node /usr/local/bin/node22 /usr/bin/node
+        do
+          if [ -x "$path" ]; then
+            echo "Found Node.js at $path, setting in rc.conf..."
+            sysrc timekeeper_node="$path"
+            break
+          fi
+        done
+      fi
+      
       echo "Would you like to start the service now? (y/n)"
       read -r start_service
       if [ "$start_service" = "y" ] || [ "$start_service" = "Y" ]; then
+        echo "Starting service..."
         service timekeeper start
-        echo "Service started. Check status with: service timekeeper status"
+        sleep 2
+        if service timekeeper status | grep -q "is running"; then
+          echo "Service started successfully. Check status with: service timekeeper status"
+        else
+          echo "Service may have failed to start. Check logs with: cat /var/log/timekeeper.log"
+          echo "You can also try running the server manually with: node $APP_DIR/server.js"
+        fi
       else
         echo "Service installed but not started. Start manually with: service timekeeper start"
       fi
