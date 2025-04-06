@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "expo export:web",
+    "serve": "node server.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
@@ -14,6 +16,9 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
+    "express": "^4.18.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
     "expo": "~52.0.42",
     "expo-file-system": "^18.0.12",
     "expo-print": "~14.0.3",
