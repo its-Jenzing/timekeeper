@@ -30,8 +30,45 @@ app.use(cors());
 // Compress all responses
 app.use(compression());
 
+// Check if web-build directory exists
+const webBuildPath = path.join(__dirname, 'web-build');
+if (!fs.existsSync(webBuildPath)) {
+  console.warn(`Warning: '${webBuildPath}' directory not found. Creating empty directory.`);
+  fs.mkdirSync(webBuildPath, { recursive: true });
+  
+  // Create a simple index.html file as fallback
+  const fallbackHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Timekeeper App</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .error { color: #e74c3c; }
+    .info { margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Timekeeper Server</h1>
+    <p class="error">Web application files not found.</p>
+    <p>The server is running, but the web application files are missing.</p>
+    <div class="info">
+      <p>Server health check is available at: <a href="/health">/health</a></p>
+      <p>Server information is available at: <a href="/server-info">/server-info</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+  fs.writeFileSync(path.join(webBuildPath, 'index.html'), fallbackHtml);
+}
+
 // Serve static files from the web-build directory
-app.use(express.static(path.join(__dirname, 'web-build')));
+app.use(express.static(webBuildPath));
 
 // Add a health check endpoint
 app.get('/health', (req, res) => {
@@ -72,7 +109,12 @@ app.get('/server-info', (req, res) => {
 
 // Handle all other routes by serving the index.html file
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web-build', 'index.html'));
+  const indexPath = path.join(webBuildPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Application files not found. Please build the web application first.');
+  }
 });
 
 // Get server IP addresses to display
