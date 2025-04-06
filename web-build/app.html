@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Account App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background-color: #3f51b5;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    nav {
+      background-color: #303f9f;
+      padding: 0.5rem;
+    }
+    nav ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+    nav li {
+      margin: 0 1rem;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem;
+    }
+    nav a:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    main {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background-color: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .stat-card h3 {
+      margin-top: 0;
+      color: #555;
+    }
+    .stat-card .value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #3f51b5;
+      margin: 1rem 0;
+    }
+    .time-tracker {
+      background-color: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .timer {
+      font-size: 3rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 1.5rem 0;
+      color: #3f51b5;
+    }
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .start-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .start-btn:hover {
+      background-color: #45a049;
+    }
+    .stop-btn {
+      background-color: #f44336;
+      color: white;
+    }
+    .stop-btn:hover {
+      background-color: #d32f2f;
+    }
+    .pause-btn {
+      background-color: #ff9800;
+      color: white;
+    }
+    .pause-btn:hover {
+      background-color: #f57c00;
+    }
+    .entries-list {
+      margin-top: 2rem;
+    }
+    .entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+    .entry:last-child {
+      border-bottom: none;
+    }
+    .entry-description {
+      flex-grow: 1;
+    }
+    .entry-time {
+      font-weight: bold;
+      color: #3f51b5;
+    }
+    .entry-date {
+      color: #777;
+      font-size: 0.9rem;
+    }
+    footer {
+      background-color: #303f9f;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+    }
+    .hidden {
+      display: none;
+    }
+    #project-input, #description-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .home-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #3f51b5;
+      text-decoration: none;
+    }
+    .home-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Time Account App</h1>
+    <p>Track your time, manage your customers, and boost your productivity</p>
+  </header>
+  
+  <nav>
+    <ul>
+      <li><a href="#dashboard" class="nav-link" data-section="dashboard-section">Dashboard</a></li>
+      <li><a href="#timetracking" class="nav-link" data-section="timetracking-section">Time Tracking</a></li>
+      <li><a href="#customers" class="nav-link" data-section="customers-section">Customers</a></li>
+      <li><a href="#reports" class="nav-link" data-section="reports-section">Reports</a></li>
+    </ul>
+  </nav>
+  
+  <main>
+    <section id="dashboard-section">
+      <h2>Dashboard</h2>
+      
+      <div class="dashboard">
+        <div class="stat-card">
+          <h3>Hours This Week</h3>
+          <div class="value">24.5</div>
+        </div>
+        
+        <div class="stat-card">
+          <h3>Active Projects</h3>
+          <div class="value">3</div>
+        </div>
+        
+        <div class="stat-card">
+          <h3>Customers</h3>
+          <div class="value">5</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Recent Activity</h3>
+        <div class="entries-list">
+          <div class="entry">
+            <div class="entry-description">
+              <strong>Website Development</strong> - Homepage redesign
+              <div class="entry-date">Today, 10:30 AM</div>
+            </div>
+            <div class="entry-time">2h 15m</div>
+          </div>
+          
+          <div class="entry">
+            <div class="entry-description">
+              <strong>Mobile App</strong> - Bug fixes
+              <div class="entry-date">Yesterday, 3:45 PM</div>
+            </div>
+            <div class="entry-time">1h 30m</div>
+          </div>
+          
+          <div class="entry">
+            <div class="entry-description">
+              <strong>Client Meeting</strong> - Project planning
+              <div class="entry-date">Yesterday, 9:00 AM</div>
+            </div>
+            <div class="entry-time">45m</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="timetracking-section" class="hidden">
+      <h2>Time Tracking</h2>
+      
+      <div class="time-tracker">
+        <div>
+          <label for="project-input">Project:</label>
+          <input type="text" id="project-input" placeholder="Enter project name">
+        </div>
+        
+        <div>
+          <label for="description-input">Description:</label>
+          <input type="text" id="description-input" placeholder="What are you working on?">
+        </div>
+        
+        <div class="timer" id="timer">00:00:00</div>
+        
+        <div class="timer-controls">
+          <button id="start-timer" class="start-btn">Start</button>
+          <button id="pause-timer" class="pause-btn" disabled>Pause</button>
+          <button id="stop-timer" class="stop-btn" disabled>Stop</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Today's Entries</h3>
+        <div class="entries-list" id="today-entries">
+          <!-- Entries will be added here dynamically -->
+        </div>
+      </div>
+    </section>
+    
+    <section id="customers-section" class="hidden">
+      <h2>Customers</h2>
+      
+      <div class="card">
+        <h3>Customer List</h3>
+        <p>This is where you would manage your customer information.</p>
+        <p>Features would include:</p>
+        <ul>
+          <li>Adding new customers</li>
+          <li>Editing customer details</li>
+          <li>Viewing customer history</li>
+          <li>Managing customer projects</li>
+        </ul>
+      </div>
+    </section>
+    
+    <section id="reports-section" class="hidden">
+      <h2>Reports</h2>
+      
+      <div class="card">
+        <h3>Time Reports</h3>
+        <p>This is where you would generate and view reports.</p>
+        <p>Report types would include:</p>
+        <ul>
+          <li>Weekly time summaries</li>
+          <li>Project-based reports</li>
+          <li>Customer billing reports</li>
+          <li>Productivity analysis</li>
+        </ul>
+      </div>
+    </section>
+    
+    <a href="/" class="home-link">← Back to Home</a>
+  </main>
+  
+  <footer>
+    <p>&copy; 2025 Time Account App | Running on TrueNAS Core</p>
+  </footer>
+  
+  <script>
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Hide all sections
+        document.querySelectorAll('main > section').forEach(section => {
+          section.classList.add('hidden');
+        });
+        
+        // Show the selected section
+        const sectionId = this.getAttribute('data-section');
+        document.getElementById(sectionId).classList.remove('hidden');
+      });
+    });
+    
+    // Timer functionality
+    let timerInterval;
+    let seconds = 0;
+    let isRunning = false;
+    let isPaused = false;
+    
+    const timerDisplay = document.getElementById('timer');
+    const startButton = document.getElementById('start-timer');
+    const pauseButton = document.getElementById('pause-timer');
+    const stopButton = document.getElementById('stop-timer');
+    const projectInput = document.getElementById('project-input');
+    const descriptionInput = document.getElementById('description-input');
+    const todayEntries = document.getElementById('today-entries');
+    
+    startButton.addEventListener('click', function() {
+      if (!projectInput.value) {
+        alert('Please enter a project name');
+        return;
+      }
+      
+      if (isPaused) {
+        // Resume timer
+        isPaused = false;
+        this.disabled = true;
+        pauseButton.disabled = false;
+      } else {
+        // Start new timer
+        seconds = 0;
+        updateTimerDisplay();
+      }
+      
+      isRunning = true;
+      this.disabled = true;
+      pauseButton.disabled = false;
+      stopButton.disabled = false;
+      
+      timerInterval = setInterval(function() {
+        seconds++;
+        updateTimerDisplay();
+      }, 1000);
+    });
+    
+    pauseButton.addEventListener('click', function() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      isPaused = true;
+      this.disabled = true;
+      startButton.disabled = false;
+    });
+    
+    stopButton.addEventListener('click', function() {
+      if (!isRunning && !isPaused) return;
+      
+      clearInterval(timerInterval);
+      
+      // Add entry to today's list
+      const entry = document.createElement('div');
+      entry.className = 'entry';
+      entry.innerHTML = `
+        <div class="entry-description">
+          <strong>${projectInput.value}</strong> - ${descriptionInput.value || 'No description'}
+          <div class="entry-date">Today, ${new Date().toLocaleTimeString()}</div>
+        </div>
+        <div class="entry-time">${formatTime(seconds)}</div>
+      `;
+      todayEntries.prepend(entry);
+      
+      // Reset timer and inputs
+      seconds = 0;
+      updateTimerDisplay();
+      isRunning = false;
+      isPaused = false;
+      this.disabled = true;
+      pauseButton.disabled = true;
+      startButton.disabled = false;
+      projectInput.value = '';
+      descriptionInput.value = '';
+    });
+    
+    function updateTimerDisplay() {
+      timerDisplay.textContent = formatTime(seconds);
+    }
+    
+    function formatTime(totalSeconds) {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      
+      return [hours, minutes, seconds]
+        .map(v => v < 10 ? "0" + v : v)
+        .join(":");
+    }
+    
+    // Show dashboard by default
+    document.getElementById('dashboard-section').classList.remove('hidden');
+  </script>
+</body>
+</html>

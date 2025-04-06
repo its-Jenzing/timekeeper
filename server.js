@@ -67,6 +67,15 @@ if (!fs.existsSync(webBuildPath)) {
   fs.writeFileSync(path.join(webBuildPath, 'index.html'), fallbackHtml);
 }
 
+// Log the contents of the web-build directory
+console.log('Contents of web-build directory:');
+try {
+  const webBuildContents = fs.readdirSync(webBuildPath);
+  console.log(webBuildContents);
+} catch (err) {
+  console.error('Error reading web-build directory:', err);
+}
+
 // Serve static files from the web-build directory
 app.use(express.static(webBuildPath));
 
@@ -105,6 +114,16 @@ app.get('/server-info', (req, res) => {
   };
   
   res.status(200).json(serverInfo);
+});
+
+// Add a route for the app
+app.get('/app', (req, res) => {
+  const appPath = path.join(webBuildPath, 'app.html');
+  if (fs.existsSync(appPath)) {
+    res.sendFile(appPath);
+  } else {
+    res.status(404).send('App not found. Please run the build script to create the application files.');
+  }
 });
 
 // Handle all other routes by serving the index.html file
