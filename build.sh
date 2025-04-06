@@ -49,6 +49,22 @@ check_dependency npm npm || { echo "Failed to install npm"; exit 1; }
 # Make sure PATH includes /usr/local/bin where node is likely installed
 export PATH="/usr/local/bin:$PATH"
 
+# Debug information about Node.js installation
+echo "Node.js information:"
+echo "Node path: $(which node 2>/dev/null || echo 'Not found in PATH')"
+echo "Node version: $(node --version 2>/dev/null || echo 'Cannot determine version')"
+echo "Node locations:"
+for path in /usr/bin/node /usr/local/bin/node /usr/local/bin/node22
+do
+  if [ -x "$path" ]; then
+    echo "  - $path (executable)"
+  elif [ -e "$path" ]; then
+    echo "  - $path (exists but not executable)"
+  else
+    echo "  - $path (not found)"
+  fi
+done
+
 # Install Node.js dependencies
 echo "Installing Node.js dependencies..."
 npm install --production || { echo "Failed to install Node.js dependencies"; exit 1; }
@@ -135,14 +151,14 @@ if [ "$(id -u)" -eq 0 ]; then
       sysrc timekeeper_enable="YES"
       sysrc timekeeper_dir="$APP_DIR"
       
-      # Find node executable path
-      NODE_PATH=$(which node)
-      if [ -n "$NODE_PATH" ]; then
+      # Find node executable path with more robust detection
+      NODE_PATH=$(which node 2>/dev/null)
+      if [ -n "$NODE_PATH" ] && [ -x "$NODE_PATH" ]; then
         echo "Setting node path to $NODE_PATH in rc.conf..."
         sysrc timekeeper_node="$NODE_PATH"
       else
         # Try to find node in common locations
-        for path in /usr/local/bin/node /usr/local/bin/node22 /usr/bin/node
+        for path in /usr/local/bin/node /usr/bin/node /usr/local/bin/node22
         do
           if [ -x "$path" ]; then
             echo "Found Node.js at $path, setting in rc.conf..."
@@ -150,6 +166,12 @@ if [ "$(id -u)" -eq 0 ]; then
             break
           fi
         done
+      fi
+      
+      # Create a symlink to ensure node is found in the expected location
+      if [ ! -e "/usr/local/bin/node" ] && [ -x "/usr/local/bin/node22" ]; then
+        echo "Creating symlink from node22 to node..."
+        ln -sf /usr/local/bin/node22 /usr/local/bin/node
       fi
       
       echo "Would you like to start the service now? (y/n)"

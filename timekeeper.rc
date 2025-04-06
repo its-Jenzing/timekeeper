@@ -58,23 +58,37 @@ timekeeper_precmd()
         chown "${timekeeper_user}:${timekeeper_group}" "${timekeeper_dir}/logs"
     fi
     
-    # Check if node is installed - use full path to node
-    if [ ! -x "${timekeeper_node}" ]; then
-        echo "Node.js is not installed at ${timekeeper_node}. Please install it with: pkg install -y node"
-        # Try to find node in other locations
-        for nodepath in /usr/bin/node /usr/local/bin/node22 /usr/local/bin/node
-        do
-            if [ -x "${nodepath}" ]; then
-                echo "Found Node.js at ${nodepath}, using this instead"
-                timekeeper_node="${nodepath}"
-                break
-            fi
-        done
-        
-        # If we still don't have a valid node path, fail
-        if [ ! -x "${timekeeper_node}" ]; then
-            return 1
+    # Find node executable regardless of what's in timekeeper_node
+    node_found=0
+    
+    # First check the configured path
+    if [ -x "${timekeeper_node}" ]; then
+        node_found=1
+    else
+        # Try to find node in PATH first
+        node_path=$(which node 2>/dev/null)
+        if [ -n "${node_path}" ] && [ -x "${node_path}" ]; then
+            echo "Found Node.js at ${node_path}, using this instead"
+            timekeeper_node="${node_path}"
+            node_found=1
+        else
+            # Try common locations as fallback
+            for nodepath in /usr/local/bin/node /usr/bin/node /usr/local/bin/node22
+            do
+                if [ -x "${nodepath}" ]; then
+                    echo "Found Node.js at ${nodepath}, using this instead"
+                    timekeeper_node="${nodepath}"
+                    node_found=1
+                    break
+                fi
+            done
         fi
+    fi
+    
+    # If we still don't have a valid node path, fail
+    if [ ${node_found} -eq 0 ]; then
+        echo "Node.js not found. Please install it with: pkg install -y node"
+        return 1
     fi
     
     # Check if the application directory exists
