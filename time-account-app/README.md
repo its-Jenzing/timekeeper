@@ -66,12 +66,72 @@ After starting the development server, you can run the app in several ways:
 - **On an emulator**: Press 'a' for Android or 'i' for iOS in the terminal
 - **On the web**: Press 'w' to open in a web browser
 
+## Deploying on TrueNAS/FreeBSD
+
+### Prerequisites
+- A TrueNAS Core system with a FreeBSD jail
+- Node.js and npm installed in the jail
+
+### Deployment Steps
+
+1. **Transfer the application to your jail**:
+   You can use SCP, Git, or any other method to transfer the files to your TrueNAS jail.
+
+2. **Run the deployment script**:
+   ```bash
+   chmod +x deploy.sh
+   ./deploy.sh
+   ```
+
+3. **Access the application**:
+   After deployment, the application will be accessible at:
+   ```
+   http://YOUR_JAIL_IP:3000
+   ```
+
+4. **Managing the service**:
+   ```bash
+   # Check status
+   service timekeeper status
+   
+   # Restart service
+   service timekeeper restart
+   
+   # Stop service
+   service timekeeper stop
+   
+   # Start monitoring
+   service timekeeper monitor
+   ```
+
+5. **View logs**:
+   ```bash
+   # Server logs
+   tail -f /var/log/timekeeper.log
+   
+   # Application logs
+   tail -f logs/access.log
+   
+   # Monitor logs
+   tail -f logs/monitor.log
+   ```
+
+### Troubleshooting
+
+- **Service won't start**: Check the logs for errors
+- **Can't access the application**: Make sure the jail has proper network configuration and the port is accessible
+- **Application crashes**: Check the monitor logs for details and restart the service
+
 ## Project Structure
 
 - `/screens`: Main application screens (Home, Customer, Export)
 - `/components`: Reusable UI components like TabBar
 - `/assets`: Images, fonts, and other static assets
 - `/utils`: Utility functions including PDF generation
+- `/logs`: Server and application logs
+- `server.js`: Express server for web deployment
+- `monitor.js`: Service monitoring script
+- `timekeeper.rc`: FreeBSD service configuration
 
 ## Technologies Used
 
@@ -79,6 +139,8 @@ After starting the development server, you can run the app in several ways:
 - React Native Paper (UI components)
 - React Navigation
 - PDF generation and export functionality
+- Express.js for web serving
+- FreeBSD service integration for TrueNAS
 
 ## Contributing
 

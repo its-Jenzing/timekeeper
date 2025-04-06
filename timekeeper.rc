@@ -28,16 +28,18 @@ load_rc_config $name
 : ${timekeeper_dir:="/usr/local/timekeeper"}
 : ${timekeeper_port:="3000"}
 : ${timekeeper_log:="/var/log/timekeeper.log"}
+: ${timekeeper_node:="/usr/local/bin/node"}
 
 pidfile="/var/run/${name}.pid"
 command="/usr/sbin/daemon"
-command_args="-P ${pidfile} -r -f -o ${timekeeper_log} -u ${timekeeper_user} /usr/local/bin/node ${timekeeper_dir}/server.js"
+command_args="-P ${pidfile} -r -f -o ${timekeeper_log} -u ${timekeeper_user} ${timekeeper_node} ${timekeeper_dir}/server.js"
 
 start_precmd="timekeeper_precmd"
 status_cmd="timekeeper_status"
 stop_cmd="timekeeper_stop"
+restart_cmd="timekeeper_restart"
 monitor_cmd="timekeeper_monitor"
-extra_commands="status monitor"
+extra_commands="status restart monitor"
 
 timekeeper_precmd()
 {
@@ -48,6 +50,12 @@ timekeeper_precmd()
     if [ ! -e "${timekeeper_log}" ]; then
         touch "${timekeeper_log}"
         chown "${timekeeper_user}:${timekeeper_group}" "${timekeeper_log}"
+    fi
+    
+    # Create logs directory in app folder if it doesn't exist
+    if [ ! -d "${timekeeper_dir}/logs" ]; then
+        mkdir -p "${timekeeper_dir}/logs"
+        chown "${timekeeper_user}:${timekeeper_group}" "${timekeeper_dir}/logs"
     fi
     
     # Check if node is installed
@@ -107,10 +115,27 @@ timekeeper_stop()
     fi
 }
 
+timekeeper_restart()
+{
+    echo "Restarting ${name}..."
+    
+    # First stop the service
+    timekeeper_stop
+    
+    # Wait a moment
+    sleep 2
+    
+    # Start the service again
+    run_rc_command "start"
+    
+    echo "Service restarted."
+}
+
 timekeeper_monitor()
 {
     echo "Starting monitor for ${name}..."
-    /usr/local/bin/node ${timekeeper_dir}/monitor.js &
+    cd "${timekeeper_dir}" && ${timekeeper_node} "${timekeeper_dir}/monitor.js" > "${timekeeper_dir}/logs/monitor.log" 2>&1 &
+    echo "Monitor started. Logs at: ${timekeeper_dir}/logs/monitor.log"
 }
 
 run_rc_command "$1"

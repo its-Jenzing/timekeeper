@@ -1,12 +1,52 @@
-#!/bin/bash
+#!/bin/sh
+# TrueNAS Core (FreeBSD) Deployment Script for Time Account App
 
-# Set up environment
-echo "Setting up environment..."
-# Install Node.js dependencies
-npm install
+# Set strict error handling
+set -e
+
+echo "====================================================="
+echo "TIME ACCOUNT APP DEPLOYMENT FOR TRUENAS CORE"
+echo "====================================================="
+
+# Check if running as root or with sufficient privileges
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Warning: This script should ideally be run as root or with sudo"
+  echo "Some operations might fail without proper permissions"
+  echo "Continue anyway? (y/n)"
+  read -r answer
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+    echo "Deployment cancelled."
+    exit 1
+  fi
+fi
+
+# Check for required dependencies
+check_dependency() {
+  if ! command -v "$1" > /dev/null 2>&1; then
+    echo "$1 is not installed. Installing..."
+    pkg install -y "$2"
+  else
+    echo "$1 is already installed."
+  fi
+}
+
+echo "Checking dependencies..."
+check_dependency node nodejs
+check_dependency npm npm
+
+# Create logs directory if it doesn't exist
+if [ ! -d "logs" ]; then
+  echo "Creating logs directory..."
+  mkdir -p logs
+  chmod 755 logs
+fi
+
+# Install dependencies
+echo "Installing Node.js dependencies..."
+npm install --production
 
 # Build the web version
-echo "Building web version..."
+echo "Building web application..."
 npm run build
 
 # Check if web-build directory exists
@@ -15,53 +55,35 @@ if [ ! -d "web-build" ]; then
   exit 1
 fi
 
-# Install server dependencies if not already installed
-echo "Installing server dependencies..."
-npm install express compression cors
+# Copy the FreeBSD rc script to the proper location
+echo "Installing FreeBSD service..."
+cp timekeeper.rc /usr/local/etc/rc.d/timekeeper
+chmod 555 /usr/local/etc/rc.d/timekeeper
 
-# Create a systemd service file for persistent running
-echo "Creating service file for persistent running..."
-cat > time-account-app.service << EOL
-[Unit]
-Description=Time Account App Server
-After=network.target
+# Enable the service in rc.conf
+echo "Enabling service in /etc/rc.conf..."
+sysrc timekeeper_enable="YES"
+sysrc timekeeper_dir="$(pwd)"
 
-[Service]
-WorkingDirectory=$(pwd)
-ExecStart=$(which node) server.js
-Restart=always
-User=$(whoami)
-Environment=PORT=3000
-
-[Install]
-WantedBy=multi-user.target
-EOL
+# Start the service
+echo "Starting service..."
+service timekeeper start
 
 echo "====================================================="
-echo "DEPLOYMENT INSTRUCTIONS:"
+echo "DEPLOYMENT COMPLETE!"
 echo "====================================================="
-echo "1. Copy this app to your TrueNAS jail"
-echo "   (Use SCP or Git clone from your repository)"
-echo "   For Git setup instructions, run: ./git-setup.sh"
-echo ""
-echo "2. Inside the jail, navigate to the app directory and run:"
-echo "   chmod +x deploy.sh"
-echo "   ./deploy.sh"
-echo ""
-echo "3. For persistent running, copy the service file to systemd:"
-echo "   cp time-account-app.service /etc/systemd/system/"
-echo "   systemctl enable time-account-app"
-echo "   systemctl start time-account-app"
-echo ""
-echo "4. If systemd is not available in your jail, use this command to keep the app running:"
-echo "   nohup node server.js > app.log 2>&1 &"
-echo ""
-echo "5. Access your app at: http://YOUR_JAIL_IP:3000"
+echo
+echo "Your app is now running as a service!"
+echo
+echo "Access your app at: http://$(ifconfig | grep -E 'inet.[0-9]' | grep -v '127.0.0.1' | awk '{ print $2 }' | head -n 1):3000"
+echo
+echo "Useful commands:"
+echo "- Check service status: service timekeeper status"
+echo "- Restart service: service timekeeper restart"
+echo "- Stop service: service timekeeper stop"
+echo "- View logs: tail -f logs/access.log"
+echo
 echo "====================================================="
-
-# Start the server
-echo "Starting server in foreground mode..."
-node server.js
 #!/bin/bash
 
 echo "====================================================="
