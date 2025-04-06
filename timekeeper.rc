@@ -1,0 +1,116 @@
+#!/bin/sh
+#
+# PROVIDE: timekeeper
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf to enable timekeeper:
+# timekeeper_enable="YES"
+#
+# timekeeper_enable (bool):  Set to "NO" by default.
+#                            Set it to "YES" to enable timekeeper.
+# timekeeper_user (str):     Set to "root" by default.
+# timekeeper_group (str):    Set to "wheel" by default.
+# timekeeper_dir (str):      Set to "/usr/local/timekeeper" by default.
+# timekeeper_port (int):     Set to "3000" by default.
+# timekeeper_log (str):      Set to "/var/log/timekeeper.log" by default.
+
+. /etc/rc.subr
+
+name="timekeeper"
+rcvar=timekeeper_enable
+
+load_rc_config $name
+
+: ${timekeeper_enable:="NO"}
+: ${timekeeper_user:="root"}
+: ${timekeeper_group:="wheel"}
+: ${timekeeper_dir:="/usr/local/timekeeper"}
+: ${timekeeper_port:="3000"}
+: ${timekeeper_log:="/var/log/timekeeper.log"}
+
+pidfile="/var/run/${name}.pid"
+command="/usr/sbin/daemon"
+command_args="-P ${pidfile} -r -f -o ${timekeeper_log} -u ${timekeeper_user} /usr/local/bin/node ${timekeeper_dir}/server.js"
+
+start_precmd="timekeeper_precmd"
+status_cmd="timekeeper_status"
+stop_cmd="timekeeper_stop"
+monitor_cmd="timekeeper_monitor"
+extra_commands="status monitor"
+
+timekeeper_precmd()
+{
+    if [ ! -d "/var/run" ]; then
+        mkdir -p /var/run
+    fi
+    
+    if [ ! -e "${timekeeper_log}" ]; then
+        touch "${timekeeper_log}"
+        chown "${timekeeper_user}:${timekeeper_group}" "${timekeeper_log}"
+    fi
+    
+    # Check if node is installed
+    if ! which node >/dev/null 2>&1; then
+        echo "Node.js is not installed. Please install it with: pkg install -y node"
+        return 1
+    fi
+    
+    # Check if the application directory exists
+    if [ ! -d "${timekeeper_dir}" ]; then
+        echo "Application directory ${timekeeper_dir} does not exist"
+        return 1
+    fi
+    
+    # Check if server.js exists
+    if [ ! -f "${timekeeper_dir}/server.js" ]; then
+        echo "server.js not found in ${timekeeper_dir}"
+        return 1
+    fi
+    
+    # Check if web-build directory exists
+    if [ ! -d "${timekeeper_dir}/web-build" ]; then
+        echo "web-build directory not found. The application may not have been built properly."
+        return 1
+    fi
+    
+    return 0
+}
+
+timekeeper_status()
+{
+    if [ -e "${pidfile}" ]; then
+        pid=$(cat "${pidfile}")
+        if ps -p "${pid}" >/dev/null 2>&1; then
+            echo "${name} is running as pid ${pid}"
+            return 0
+        else
+            echo "${name} is not running (stale pid file: ${pidfile})"
+            return 1
+        fi
+    else
+        echo "${name} is not running"
+        return 1
+    fi
+}
+
+timekeeper_stop()
+{
+    if [ -e "${pidfile}" ]; then
+        pid=$(cat "${pidfile}")
+        echo "Stopping ${name}..."
+        kill -TERM "${pid}" 2>/dev/null
+        wait_for_pids "${pid}"
+        rm -f "${pidfile}"
+    else
+        echo "${name} is not running"
+    fi
+}
+
+timekeeper_monitor()
+{
+    echo "Starting monitor for ${name}..."
+    /usr/local/bin/node ${timekeeper_dir}/monitor.js &
+}
+
+run_rc_command "$1"
